@@ -29,16 +29,29 @@ def get_stock_price(ticker: str) -> dict:
     return {"erro": "Ação não encontrada"}
 
 
-def get_selic() -> dict:
-    """Busca a SELIC atual na API do Banco Central (sem autenticação)"""
+def get_meta_selic() -> dict:
+    """(Meta do Governo) Busca a meta atual da Selic definida pelo Banco central e pelo COPOM"""
     url = (
-        "https://api.bcb.gov.br/dados/serie/bcdata.sgs.11/dados/ultimos/1?formato=json"
+        "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json"
     )
+    response = requests.get(url)
+    data = response.json()
+    if data:
+        return {
+            "taxa_selic_diaria": data[0]["valor"],
+            "data": data[0]["data"],
+        }
+    return {"erro": "Não foi possível obter a SELIC"}
+
+
+def get_selic_real() -> dict:
+    """(Selic efetiva no mercado) Busca a SELIC efetiva atual para investidores"""
+    url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json"
     resp = requests.get(url, timeout=5)
     data = resp.json()
     if data:
         return {
-            "taxa_selic_diaria": data[0]["valor"],
+            "taxa_selic_atual": data[0]["valor"],
             "data": data[0]["data"],
         }
     return {"erro": "Não foi possível obter a SELIC"}
@@ -57,6 +70,35 @@ def get_ipca() -> dict:
             "referencia": data[0]["data"],
         }
     return {"erro": "Não foi possível obter o IPCA"}
+
+
+def get_ipca_acumulado() -> dict:
+    """Busca o IPCA acumulado dos últimos 12 meses (juros compostos)"""
+    url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados/ultimos/12?formato=json"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        if not data:
+            return {"erro": "Resposta vazia da API"}
+
+        acumulado = 1
+
+        for item in data:
+            taxa = float(item["valor"]) / 100  # transforma % em decimal
+            acumulado *= 1 + taxa
+
+        ipca_12_meses = (acumulado - 1) * 100
+
+        return {
+            "ipca_12_meses": round(ipca_12_meses, 2),
+            "referencia": data[-1]["data"],
+        }
+    except requests.RequestException as e:
+        return {"erro": f"Erro na requisição: {e}"}
+    except (KeyError, ValueError) as e:
+        return {"erro": f"Erro ao processar os dados: {e}"}
 
 
 # ── Declaração das funções pro Gemini ─────────────────────────────────────────
@@ -79,13 +121,23 @@ tools = [
                 ),
             ),
             types.FunctionDeclaration(
-                name="get_selic",
-                description="Retorna a taxa SELIC diária atual do Banco Central",
+                name="get_selic_real",
+                description="Retorna a meta da taxa Selic da reunião do COPOM e Banco Central",
                 parameters=types.Schema(type="OBJECT", properties={}),
             ),
             types.FunctionDeclaration(
                 name="get_ipca",
                 description="Retorna o IPCA do último mês (inflação oficial do Brasil)",
+                parameters=types.Schema(type="OBJECT", properties={}),
+            ),
+            types.FunctionDeclaration(
+                name="get_ipca_acumulado",
+                description="Retorna o IPCA acumulado dos últimos 12 meses(inflação oficial do Brasil)",
+                parameters=types.Schema(type="OBJECT", properties={}),
+            ),
+            types.FunctionDeclaration(
+                name="get_meta_selic",
+                description="Retorna a Taxa selic real que roda em mercado para investimentos",
                 parameters=types.Schema(type="OBJECT", properties={}),
             ),
         ]
@@ -102,8 +154,10 @@ Sempre avise que suas respostas são educativas e não constituem recomendação
 # ── Mapa de funções disponíveis ───────────────────────────────────────────────
 
 FUNCOES = {
+    "get_meta_selic": get_meta_selic,
+    "get_ipca_acumulado": get_ipca_acumulado,
     "get_stock_price": get_stock_price,
-    "get_selic": get_selic,
+    "get_selic_real": get_selic_real,
     "get_ipca": get_ipca,
 }
 
@@ -114,7 +168,7 @@ def chamar_gemini(pergunta: str, historico: list) -> str:
     historico.append(types.Content(role="user", parts=[types.Part(text=pergunta)]))
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         contents=historico,
         config=types.GenerateContentConfig(
             tools=tools,
@@ -144,7 +198,7 @@ def chamar_gemini(pergunta: str, historico: list) -> str:
         historico.append(types.Content(role="user", parts=result_parts))
 
         final = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=historico,
             config=types.GenerateContentConfig(
                 tools=tools,
@@ -153,7 +207,7 @@ def chamar_gemini(pergunta: str, historico: list) -> str:
         )
         resposta = final.text
         historico.append(types.Content(role="model", parts=[types.Part(text=resposta)]))
-        return resposta
+        return resposta | none
 
     resposta = response.text
     historico.append(types.Content(role="model", parts=[types.Part(text=resposta)]))
