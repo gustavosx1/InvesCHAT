@@ -10,12 +10,20 @@ load_dotenv()
 
 # ── Funções reais que chamam as APIs ──────────────────────────────────────────
 
-def get_perfil_investidor() -> dict:
-   
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-supabase = create_client(url, key)
-   supabase.
+def get_perfil_investidor(id: str) -> dict:
+    """Busca o perfil do investidor no banco de dados"""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    supabase = create_client(url, key)
+    response = supabase.table('perfil_teste').select('*').eq('id', id).execute()
+    data = response.data
+    if data:
+        return {
+            "nome": data[0]["nome"],
+            "perfil": data[0]["perfil"],
+            "data": data[0]["created_at"],
+        }
+    return {"erro": "Perfil não encontrado"}
 
 def get_stock_price(ticker: str) -> dict:
     """Busca cotação na brapi.dev (sem token pras ações de teste)"""
@@ -126,6 +134,7 @@ tools = [
                     required=["ticker"],
                 ),
             ),
+             
             types.FunctionDeclaration(
                 name="get_selic_real",
                 description="Retorna a meta da taxa Selic da reunião do COPOM e Banco Central",

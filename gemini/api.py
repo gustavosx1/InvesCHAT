@@ -10,14 +10,12 @@ from google import genai
 from google.genai import types
 
 # Importa as funções e configurações do agent_test.py
-from chamdas import (
-    chamar_gemini,
+from chamadas import (
     get_stock_price,
     get_meta_selic,
     get_selic_real,
     get_ipca,
     get_ipca_acumulado,
-    get_perfil_investidor,
     tools,
     SYSTEM_PROMPT,
     FUNCOES,
@@ -111,8 +109,8 @@ def chamar_gemini(pergunta: str, historico: list, user_id: Optional[str] = None)
             fc = part.function_call
             resultado = FUNCOES[fc.name](**fc.args)
             result_parts.append(
-                types.Part(
-                    function_response=types.FunctionResponse(
+                types.part(
+                    function_response=types.functionresponse(
                         name=fc.name, response=resultado
                     )
                 )
@@ -179,7 +177,11 @@ def chat(request: PerguntaRequest):
         sessions[session_id]["user_id"] = request.user_id
 
     try:
-        resposta = chamar_gemini(request.pergunta, sessions[session_id]["historico"], sessions[session_id]["user_id"])
+        resposta = chamar_gemini(
+            request.pergunta,
+            sessions[session_id]["historico"],
+            sessions[session_id]["user_id"],
+        )
         return {
             "session_id": session_id,
             "pergunta": request.pergunta,
