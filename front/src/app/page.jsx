@@ -13,13 +13,12 @@ export default function Home() {
       if (!user) {
         router.push('/login')
       } else {
-        // Verificar perfil
-        checkProfile()
+        checkPerfil()
       }
     }
   }, [user, loading, router])
 
-  const checkProfile = async () => {
+  const checkPerfil = async () => {
     const { supabase } = await import('../../lib/supabase')
     const { data, error } = await supabase
       .from('perfil_teste')

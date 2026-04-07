@@ -11,11 +11,14 @@ from google.genai import types
 
 # Importa as funções e configurações do agent_test.py
 from chamadas import (
+    get_data_atual,
+    get_selic_mensal,
     get_stock_price,
     get_meta_selic,
     get_selic_real,
     get_ipca,
     get_ipca_acumulado,
+    get_perfil_investidor,
     tools,
     SYSTEM_PROMPT,
     FUNCOES,
@@ -91,7 +94,7 @@ def chamar_gemini(pergunta: str, historico: list, user_id: Optional[str] = None)
     historico.append(types.Content(role="user", parts=[types.Part(text=pergunta)]))
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-2.5-pro",
         contents=historico,
         config=types.GenerateContentConfig(
             tools=tools,
@@ -109,8 +112,8 @@ def chamar_gemini(pergunta: str, historico: list, user_id: Optional[str] = None)
             fc = part.function_call
             resultado = FUNCOES[fc.name](**fc.args)
             result_parts.append(
-                types.part(
-                    function_response=types.functionresponse(
+                types.Part(
+                    function_response=types.FunctionResponse(
                         name=fc.name, response=resultado
                     )
                 )
@@ -121,7 +124,7 @@ def chamar_gemini(pergunta: str, historico: list, user_id: Optional[str] = None)
         historico.append(types.Content(role="user", parts=result_parts))
 
         final = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             contents=historico,
             config=types.GenerateContentConfig(
                 tools=tools,

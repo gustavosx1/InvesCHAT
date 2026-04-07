@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../components/AuthProvider'
 
@@ -14,9 +14,37 @@ export default function PerfilForm() {
     tolerancia: '',
     horizonte: ''
   })
+  const [validaPerfil, setValidaPerfil] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(()=>{
+    setLoading(true)
+    if(!user) return
+    fetch(`/api/perfil/${user.id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data["data"] && data["data"]["perfil"]) {
+        setValidaPerfil(true)
+        setLoading(false)
+        console.log('Perfil encontrado:', data.data.perfil)
+      }
+    })
+    .catch(error => {
+      console.error('Erro ao buscar perfil:', error)
+    })
+  }, [user])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleCancela = () => {
+    router.push('/Chat')
   }
 
   const determinarPerfil = () => {
@@ -28,6 +56,7 @@ export default function PerfilForm() {
   }
 
   const handleSubmit = async (e) => {
+    setLoading(true)
     e.preventDefault()
     const perfil = determinarPerfil()
     
@@ -41,7 +70,7 @@ export default function PerfilForm() {
       })
       
       const data = await response.json()
-      
+     
       if (!response.ok) {
         console.error('Erro ao salvar perfil:', data.error)
         alert('Erro ao salvar perfil: ' + data.error)
@@ -52,6 +81,8 @@ export default function PerfilForm() {
     } catch (error) {
       console.error('Erro ao fazer requisição:', error)
       alert('Erro ao salvar perfil')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -100,7 +131,13 @@ export default function PerfilForm() {
             <option value="longo">Longo prazo</option>
           </select>
         </div>
+        <div className='space-y-2'>
         <button type="submit" className="w-full p-2 bg-blue-500 text-white">Salvar Perfil</button>
+        {
+          validaPerfil && <button onClick={handleCancela} className="w-full p-2 bg-red-500 text-white">Cancelar</button>
+
+        }
+        </div>
       </form>
     </div>
   )

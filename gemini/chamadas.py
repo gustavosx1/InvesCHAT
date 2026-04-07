@@ -5,25 +5,43 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from supabase import create_client, Client
+from datetime import datetime
 
+data_atual = datetime.now().isoformat(),
 load_dotenv()
 
 # ── Funções reais que chamam as APIs ──────────────────────────────────────────
+def get_data_atual() -> str:
+    """Retorna a data atual para o prompt do Gemini"""
+    return datetime.now().strftime("%d-%m-%Y")
+
+def get_selic_mensal(qtdMeses: int) -> dict:
+    """Busca a SELIC mensal (meta do governo) na API do Banco Central para calcular rendimentos reais de investimentos"""
+    url = (
+        "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/{qtdMeses}?formato=json"
+    )
+    response = requests.get(url)
+    data = response.json()
+    if data:
+        return {
+            "taxa_selic_mensal": data[0]["valor"],
+            "data": data[0]["data"],
+        }
+    return {"erro": "Não foi possível obter a SELIC mensal"}
 
 def get_perfil_investidor(id: str) -> dict:
     """Busca o perfil do investidor no banco de dados"""
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
     supabase = create_client(url, key)
-    response = supabase.table('perfil_teste').select('*').eq('id', id).execute()
+    response = supabase.table("perfil_teste").select("*").eq("id", id).execute()
     data = response.data
     if data:
         return {
-            "nome": data[0]["nome"],
             "perfil": data[0]["perfil"],
-            "data": data[0]["created_at"],
         }
     return {"erro": "Perfil não encontrado"}
+
 
 def get_stock_price(ticker: str) -> dict:
     """Busca cotação na brapi.dev (sem token pras ações de teste)"""
@@ -121,6 +139,25 @@ tools = [
     types.Tool(
         function_declarations=[
             types.FunctionDeclaration(
+                name="get_data_atual",
+                description="Retorna a data atual para o prompt do Gemini",
+                parameters=types.Schema(type="OBJECT", properties={}),
+            ),
+            types.FunctionDeclaration(
+                name="get_selic_mensal",
+                description="Busca a SELIC mensal (meta do governo) na API do Banco Central para calcular rendimentos reais de investimentos",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "qtdMeses": types.Schema(
+                            type="INTEGER",
+                            description="Quantidade de meses para buscar a SELIC mensal. Exemplo: 6 para os últimos 6 meses",
+                        )
+                    },
+                    required=["qtdMeses"],
+                ),
+            ),
+            types.FunctionDeclaration(
                 name="get_stock_price",
                 description="Busca o preço atual e variação de uma ação da B3 pelo ticker",
                 parameters=types.Schema(
@@ -134,7 +171,20 @@ tools = [
                     required=["ticker"],
                 ),
             ),
-             
+            types.FunctionDeclaration(
+                name="get_perfil_investidor",
+                description="Busca o perfil do investidor no banco de dados pelo ID",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "id": types.Schema(
+                            type="STRING",
+                            description="ID do investidor no banco de dados em uuid4. Exemplo: 'xxxx-xxxx-xxxx'",
+                        )
+                    },
+                    required=["id"],
+                ),
+            ),
             types.FunctionDeclaration(
                 name="get_selic_real",
                 description="Retorna a meta da taxa Selic da reunião do COPOM e Banco Central",
@@ -161,19 +211,24 @@ tools = [
 
 SYSTEM_PROMPT = """
 Você é um assistente especializado em investimentos no mercado brasileiro.
-Responda apenas sobre: ações, renda fixa, FIIs, Tesouro Direto, SELIC, CDI, IPCA e carteiras.
+Responda apenas sobre: ações, renda fixa, FIIs, Tesouro Direto, SELIC, CDI, IPCA, carteiras e rendimentos reais de ações e títulos públicos.
 Use as ferramentas disponíveis para buscar dados reais antes de responder.
 Sempre avise que suas respostas são educativas e não constituem recomendação profissional.
+
+Recomendações de carteira:
+    Arrojado: 70% ações, 20% renda fixa, 10% tesouro direto
+    Moderado: 50% ações, 30% renda fixa, 20% tesouro direto
+    Conservador: 30% ações, 50% renda fixa, 20% tesouro direto
+
 """
 
 FUNCOES = {
+    "get_data_atual": get_data_atual,
     "get_meta_selic": get_meta_selic,
     "get_ipca_acumulado": get_ipca_acumulado,
     "get_stock_price": get_stock_price,
     "get_selic_real": get_selic_real,
     "get_ipca": get_ipca,
+    "get_perfil_investidor": get_perfil_investidor,
+    "get_selic_mensal": get_selic_mensal,
 }
-
-
-
-

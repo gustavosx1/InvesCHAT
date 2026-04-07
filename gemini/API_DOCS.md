@@ -70,13 +70,10 @@ Envia uma pergunta para o assistente e recebe resposta. Mantém histórico de co
 ```
 
 **Exemplo cURL:**
+
+
 ```bash
-curl -X POST "http://localhost:8000/api/chat" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "pergunta": "Qual é a taxa SELIC atual?",
-    "session_id": null
-  }'
+curl -X POST "http://localhost:8000/api/chat" \ -H "Content-Type: application/json" \ -d '{ "pergunta": "Qual é a taxa SELIC atual?", "session_id": null , "user_id": "e911d856-a0c6-486e-a4f8-a6234d733ebf"}'
 ```
 
 ---
@@ -276,6 +273,8 @@ curl -X POST "http://localhost:8000/api/chat" \
 
 - ✅ A API **não modifica** o código original (`agent_test.py`)
 - ✅ **Mantém sessões em memória** - histórico é perdido ao reiniciar
+- ✅ **Function calling corrigido** - Gemini pode agora chamar as ferramentas corretamente
+- ✅ **Perfil do investidor disponível** - agora integrado nas funções chamáveis
 - ⚠️ Para produção, considere adicionar um banco de dados para persistência
 - ⚠️ A API está com CORS aberto (`*`) - ajuste conforme necessário
 - ⚠️ Certifique-se que `GEMINI_API_KEY` está configurada no `.env`

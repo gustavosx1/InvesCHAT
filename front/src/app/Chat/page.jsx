@@ -41,6 +41,7 @@ export default function Chat() {
     })
 
     const data = await response.json()
+    console.log('Resposta do backend:', data)
     const botMessage = { role: 'bot', text: data.resposta }
     setMessages(prev => [...prev, botMessage])
   }
@@ -49,14 +50,23 @@ export default function Chat() {
     await supabase.auth.signOut()
     router.push('/login')
   }
+
+  const handlePerfil = () => {
+    router.push('/PerfilForm')
+  }
+  
 if (!user) {
-  return <div>Carregando usuário...</div>
+  return <div>Carregando...</div>
 }
   return (
     <div className="flex flex-col h-screen">
       <div className="p-4 border-b flex justify-between">
         <h1>InvesChat</h1>
+        <div className="space-x-2">
+        <button onClick={handleLogout} className="p-2 bg-purple-500 text-white">Invest</button>
+        <button onClick={handlePerfil} className="p-2 bg-yellow-500 text-white">Perfil</button>
         <button onClick={handleLogout} className="p-2 bg-red-500 text-white">Logout</button>
+      </div>
       </div>
       <div className="flex-1 overflow-y-auto p-4">
         {messages.map((msg, idx) => (
