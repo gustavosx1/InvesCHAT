@@ -94,7 +94,7 @@ def chamar_gemini(pergunta: str, historico: list, user_id: Optional[str] = None)
     historico.append(types.Content(role="user", parts=[types.Part(text=pergunta)]))
 
     response = client.models.generate_content(
-        model="gemini-2.5-pro",
+        model="gemini-2.5-flash",
         contents=historico,
         config=types.GenerateContentConfig(
             tools=tools,
@@ -124,7 +124,7 @@ def chamar_gemini(pergunta: str, historico: list, user_id: Optional[str] = None)
         historico.append(types.Content(role="user", parts=result_parts))
 
         final = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash",
             contents=historico,
             config=types.GenerateContentConfig(
                 tools=tools,

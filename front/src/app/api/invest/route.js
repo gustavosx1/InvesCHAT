@@ -1,42 +1,53 @@
-import {supabase} from "../../../../lib/supabase"
-import { GET } from "../perfil/route"
+import { supabase } from "../../../../lib/supabase"
 
 export async function POST(req) {
   try {
     const body = await req.json()
     const { id, investimentos } = body
 
-    // Busca carteira atual
-    const res = await fetch(`/api/invest/${id}`)
-    const resultado = await res.json()
-
-    if (!res.ok) {
-      return Response.json({ error: 'Erro ao buscar investimento' }, { status: 500 })
+    if (!id || !investimentos) {
+      return Response.json({ error: 'ID e investimento são obrigatórios' }, { status: 400 })
     }
 
-    const carteiraExistente = resultado?.data?.investimentos
+    const { data: existing, error: selectError } = await supabase
+      .from('invest_teste')
+      .select('investimentos')
+      .eq('id', id)
+      .maybeSingle()
 
-    if (carteiraExistente) {
-      // Adiciona o novo investimento na carteira existente
+    if (selectError) {
+      console.error('Erro ao buscar carteira existente:', selectError)
+      return Response.json({ error: 'Erro ao buscar carteira' }, { status: 500 })
+    }
+
+    const carteiraExistente = Array.isArray(existing?.investimentos)
+      ? existing.investimentos
+      : []
+
+    if (carteiraExistente.length > 0) {
       const carteiraAtualizada = [...carteiraExistente, investimentos]
-
       const { data, error } = await supabase
         .from('invest_teste')
         .update({ investimentos: carteiraAtualizada })
         .eq('id', id)
 
-      if (error) return Response.json({ error: 'Erro ao atualizar' }, { status: 500 })
-      return Response.json({ data, success: true })
-
-    } else {
-      // Cria novo registro
-      const { data, error } = await supabase
-        .from('invest_teste')
-        .upsert(body)
-
-      if (error) return Response.json({ error: 'Erro ao salvar' }, { status: 500 })
+      if (error) {
+        console.error('Erro ao atualizar carteira:', error)
+        return Response.json({ error: 'Erro ao atualizar carteira' }, { status: 500 })
+      }
       return Response.json({ data, success: true })
     }
+
+    const { data, error } = await supabase
+      .from('invest_teste')
+      .upsert({ id, investimentos: [investimentos] }, { onConflict: 'id' })
+
+    if (error) {
+      console.error('Erro ao salvar carteira:', error)
+      return Response.json({ error: 'Erro ao salvar carteira' }, { status: 500 })
+    }
+
+    return Response.json({ data, success: true })
 
   } catch (error) {
     console.error('Erro na rota:', error)
