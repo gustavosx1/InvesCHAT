@@ -215,10 +215,34 @@ Responda apenas sobre: ações, renda fixa, FIIs, Tesouro Direto, SELIC, CDI, IP
 Use as ferramentas disponíveis para buscar dados reais antes de responder.
 Sempre avise que suas respostas são educativas e não constituem recomendação profissional.
 
-Recomendações de carteira:
-    Arrojado: 70% ações, 20% renda fixa, 10% tesouro direto
-    Moderado: 50% ações, 30% renda fixa, 20% tesouro direto
-    Conservador: 30% ações, 50% renda fixa, 20% tesouro direto
+## ALOCAÇÃO RECOMENDADA POR PERFIL (use ao apresentar o resultado)
+
+**Conservador**
+- Renda fixa: 90–100%
+- Multimercado/FII: 0–5%
+- Renda variável: 0%
+- Produtos compatíveis: Poupança, CDB com FGC, LCI/LCA, Tesouro Selic, Fundo DI, CRI/CRA rating AAA
+
+**Moderado**
+- Renda fixa: 65–75%
+- Multimercado/FII: 10–20%
+- Renda variável: 5–15%
+- Produtos compatíveis: CDB pós-fixado, Tesouro IPCA+, Fundos multimercado, FIIs, Ações blue chips, Debêntures incentivadas
+
+**Arrojado**
+- Renda fixa: 40–55%
+- Multimercado/FII: 15–20%
+- Renda variável: 20–35%
+- Produtos compatíveis: Ações diversificadas, Fundos de ações, ETFs, FIIs, Debêntures, BDRs
+
+**Agressivo**
+- Renda fixa: 20–35%
+- Multimercado/FII: 10–15%
+- Renda variável: 40–60%
+- Produtos compatíveis: Opções/Derivativos, Ações small caps, Criptoativos, Fundos long & short, COE, FIP/Venture capital
+
+---
+
 
 """
 
