@@ -12,13 +12,15 @@ from google.genai import types
 # Importa as funções e configurações do agent_test.py
 from chamadas import (
     get_data_atual,
-    get_selic_mensal,
     get_stock_price,
-    get_meta_selic,
-    get_selic_real,
+    get_selic_meta,
+    get_selic_efetiva,
+    get_cdi_acumulada,
     get_ipca,
     get_ipca_acumulado,
     get_perfil_investidor,
+    get_bitcoin_info,
+    get_currency_conversion,
     tools,
     SYSTEM_PROMPT,
     FUNCOES,
@@ -72,6 +74,10 @@ class NovaSessionResponse(BaseModel):
 
 class StockPriceRequest(BaseModel):
     ticker: str
+
+
+class CurrencyRequest(BaseModel):
+    currency: str
 
 
 class HealthResponse(BaseModel):
@@ -210,10 +216,10 @@ def get_price(request: StockPriceRequest):
 
 
 @app.get("/api/selic-meta")
-def get_selic_meta():
+def selic_meta_endpoint():
     """Busca a meta SELIC do Banco Central"""
     try:
-        resultado = get_meta_selic()
+        resultado = get_selic_meta()
         return {
             "dados": resultado,
             "timestamp": datetime.now().isoformat(),
@@ -223,10 +229,10 @@ def get_selic_meta():
 
 
 @app.get("/api/selic-atual")
-def get_selic_atual():
+def selic_atual_endpoint():
     """Busca a SELIC efetiva do mercado"""
     try:
-        resultado = get_selic_real()
+        resultado = get_selic_efetiva()
         return {
             "dados": resultado,
             "timestamp": datetime.now().isoformat(),
@@ -261,6 +267,46 @@ def get_ipca_acum():
         raise HTTPException(
             status_code=500, detail=f"Erro ao buscar IPCA acumulado: {str(e)}"
         )
+
+
+@app.post("/api/currency-conversion")
+def currency_conversion(request: CurrencyRequest):
+    """Busca a taxa de conversão de moeda para BRL (USD, EUR, WAN)"""
+    try:
+        resultado = get_currency_conversion(request.currency)
+        return {
+            "currency": request.currency,
+            "dados": resultado,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar conversão: {str(e)}")
+
+
+@app.get("/api/bitcoin")
+def get_bitcoin():
+    """Busca o preço atual do Bitcoin"""
+    try:
+        resultado = get_bitcoin_info()
+        return {
+            "dados": resultado,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar Bitcoin: {str(e)}")
+
+
+@app.get("/api/cdi")
+def get_cdi():
+    """Busca a taxa CDI acumulada dos últimos 12 meses"""
+    try:
+        resultado = get_cdi_acumulada()
+        return {
+            "dados": resultado,
+            "timestamp": datetime.now().isoformat(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao buscar CDI: {str(e)}")
 
 
 # ── Executar ────────────────────────────────────────────────────────────

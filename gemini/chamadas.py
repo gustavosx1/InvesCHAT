@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 from supabase import create_client, Client
 from datetime import datetime
-
+from brapi import Brapi
 data_atual = datetime.now().isoformat(),
 load_dotenv()
 
@@ -15,19 +15,6 @@ def get_data_atual() -> str:
     """Retorna a data atual para o prompt do Gemini"""
     return datetime.now().strftime("%d-%m-%Y")
 
-def get_selic_mensal(qtdMeses: int) -> dict:
-    """Busca a SELIC mensal (meta do governo) na API do Banco Central para calcular rendimentos reais de investimentos"""
-    url = (
-        "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/{qtdMeses}?formato=json"
-    )
-    response = requests.get(url)
-    data = response.json()
-    if data:
-        return {
-            "taxa_selic_mensal": data[0]["valor"],
-            "data": data[0]["data"],
-        }
-    return {"erro": "Não foi possível obter a SELIC mensal"}
 
 def get_perfil_investidor(id: str) -> dict:
     """Busca o perfil do investidor no banco de dados"""
@@ -42,26 +29,7 @@ def get_perfil_investidor(id: str) -> dict:
         }
     return {"erro": "Perfil não encontrado"}
 
-
-def get_stock_price(ticker: str) -> dict:
-    """Busca cotação na brapi.dev (sem token pras ações de teste)"""
-    url = f"https://brapi.dev/api/quote/{ticker.upper()}"
-    resp = requests.get(url, timeout=5)
-    data = resp.json()
-    if "results" in data and data["results"]:
-        r = data["results"][0]
-        return {
-            "ticker": r["symbol"],
-            "preco": r["regularMarketPrice"],
-            "variacao_pct": r["regularMarketChangePercent"],
-            "abertura": r["regularMarketOpen"],
-            "max_dia": r["regularMarketDayHigh"],
-            "min_dia": r["regularMarketDayLow"],
-        }
-    return {"erro": "Ação não encontrada"}
-
-
-def get_meta_selic() -> dict:
+def get_selic_meta() -> dict:
     """(Meta do Governo) Busca a meta atual da Selic definida pelo Banco central e pelo COPOM"""
     url = (
         "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json"
@@ -76,8 +44,8 @@ def get_meta_selic() -> dict:
     return {"erro": "Não foi possível obter a SELIC"}
 
 
-def get_selic_real() -> dict:
-    """(Selic efetiva no mercado) Busca a SELIC efetiva atual para investidores"""
+def get_selic_efetiva() -> dict:
+    """(Selic efetiva no mercado) Busca a SELIC efetiva atual para investidores e calcular rendimentos reais de investimentos"""
     url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json"
     resp = requests.get(url, timeout=5)
     data = resp.json()
@@ -87,6 +55,30 @@ def get_selic_real() -> dict:
             "data": data[0]["data"],
         }
     return {"erro": "Não foi possível obter a SELIC"}
+
+def get_cdi_acumulada() -> dict:
+    """Busca a taxa CDI atual acumulada para calcular rendimentos reais de investimentos"""
+    url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados/ultimos/12?formato=json"
+    try:
+        resp = requests.get(url, timeout=5)
+        data = resp.json()
+        acumulado = 1
+        if not data:
+            return {"erro": "Resposta vazia da API"}
+        
+        for item in data:
+            taxa = float(item["valor"]) / 100  # transforma % em decimal
+            acumulado *= 1 + taxa
+
+        cdi_12_meses = (acumulado - 1) * 100
+        return {
+                "cdi_12_meses": round(cdi_12_meses, 2),
+                "referencia": data[-1]["data"],
+            }
+    except requests.RequestException as e:
+        return {"erro": f"Erro na requisição: {e}"}
+    except (KeyError, ValueError) as e:
+        return {"erro": f"Erro ao processar os dados: {e}"}
 
 
 def get_ipca() -> dict:
@@ -132,7 +124,67 @@ def get_ipca_acumulado() -> dict:
     except (KeyError, ValueError) as e:
         return {"erro": f"Erro ao processar os dados: {e}"}
 
+#Funções do mercado variável (ações, FIIs, etc) usando a API da BrAPI
+clientBrapi = Brapi(
+    api_key=os.environ.get("BRAPI_API_KEY")
+)
+ 
+def get_stock_price(ticker: str) -> dict:
+    """Busca o preço atual e variação de uma ação da B3 pelo ticker usando a API da BrAPI"""
+    try:
+        response = clientBrapi.quote.retrieve(tickers=ticker)
+        if response.results and len(response.results) > 0:
+            stock_data = response.results[0]
+            return {
+                "ticker": stock_data.symbol,
+                "price": stock_data.regular_market_price,    
+                "regular_market_day_high": stock_data.regular_market_day_high,
+                "regular_market_day_low": stock_data.regular_market_day_low,
+                "fifty_two_week_high": stock_data.fifty_two_week_high,
+                "fifty_two_week_low": stock_data.fifty_two_week_low,
+                "regular_market_change_percent": stock_data.regular_market_change_percent,
+            }
+        else:
+            return {"erro": f"Ticker {ticker} não encontrado"}
+    except Exception as e:
+        return {"erro": f"Erro ao buscar preço da ação: {str(e)}"}
+    
 
+def get_bitcoin_info() -> dict:
+    """Busca o preço atual do Bitcoin usando a API da BrAPI"""
+    try:
+        response = clientBrapi.crypto.retrieve(coin="BTC")
+        if response.currency:
+            return {
+                "coin": response.coin,
+                "price": response.regular_market_price,
+                "currency": response.currency,
+                "market_cap_rank": getattr(response, 'market_cap_rank', None),
+            }
+        else:
+            return {"erro": "Bitcoin não encontrado"}
+    except Exception as e:
+        return {"erro": f"Erro ao buscar preço do Bitcoin: {str(e)}"}
+
+
+def get_currency_conversion(currency: str) -> dict:
+    """Busca a taxa de conversão de moeda para BRL usando a API da BrAPI"""
+    try:
+        currency_pair = f"{currency.upper()}-BRL"
+        response = clientBrapi.currency.retrieve(currency=currency_pair)
+        if response:
+            return {
+                "currency_pair": currency_pair,
+                "ask": response.ask,
+                "bid": response.bid,
+                "timestamp": getattr(response, 'timestamp', None),
+            }
+        else:
+            return {"erro": f"Moeda {currency} não encontrada"}
+    except Exception as e:
+        return {"erro": f"Erro ao buscar conversão de moeda: {str(e)}"}
+
+    
 # ── Declaração das funções pro Gemini ─────────────────────────────────────────
 
 tools = [
@@ -144,19 +196,11 @@ tools = [
                 parameters=types.Schema(type="OBJECT", properties={}),
             ),
             types.FunctionDeclaration(
-                name="get_selic_mensal",
-                description="Busca a SELIC mensal (meta do governo) na API do Banco Central para calcular rendimentos reais de investimentos",
-                parameters=types.Schema(
-                    type="OBJECT",
-                    properties={
-                        "qtdMeses": types.Schema(
-                            type="INTEGER",
-                            description="Quantidade de meses para buscar a SELIC mensal. Exemplo: 6 para os últimos 6 meses",
-                        )
-                    },
-                    required=["qtdMeses"],
-                ),
+                name="get_cdi_acumulada",
+                description="Busca a taxa CDI atual acumulada para calcular rendimentos reais de investimentos",
+                parameters=types.Schema(type="OBJECT", properties={}),
             ),
+          
             types.FunctionDeclaration(
                 name="get_stock_price",
                 description="Busca o preço atual e variação de uma ação da B3 pelo ticker",
@@ -165,7 +209,7 @@ tools = [
                     properties={
                         "ticker": types.Schema(
                             type="STRING",
-                            description="Ticker da ação. Disponíveis sem token: PETR4, VALE3, MGLU3, ITUB4",
+                            description="Ticker da ação",
                         )
                     },
                     required=["ticker"],
@@ -186,8 +230,13 @@ tools = [
                 ),
             ),
             types.FunctionDeclaration(
-                name="get_selic_real",
-                description="Retorna a meta da taxa Selic da reunião do COPOM e Banco Central",
+                name="get_selic_efetiva",
+                description="Retorna a taxa Selic efetiva do mercado para calcular rendimentos reais de investimentos",
+                parameters=types.Schema(type="OBJECT", properties={}),
+            ),
+             types.FunctionDeclaration(
+                name="get_selic_meta",
+                description="Retorna a meta da Selic definida pelo Banco Central e COPOM para referência de investimentos em renda fixa",
                 parameters=types.Schema(type="OBJECT", properties={}),
             ),
             types.FunctionDeclaration(
@@ -201,17 +250,32 @@ tools = [
                 parameters=types.Schema(type="OBJECT", properties={}),
             ),
             types.FunctionDeclaration(
-                name="get_meta_selic",
-                description="Retorna a Taxa selic real que roda em mercado para investimentos",
+                name="get_bitcoin_info",
+                description="Busca o preço atual do Bitcoin para referência de investimentos em criptomoedas",
                 parameters=types.Schema(type="OBJECT", properties={}),
             ),
+            types.FunctionDeclaration(
+                name="get_currency_conversion",
+                description="Busca a taxa de conversão de moedas (USD, EUR, WAN) para BRL",
+                parameters=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "currency": types.Schema(
+                            type="STRING",
+                            description="Código da moeda: USD, EUR ou WAN",
+                        )
+                    },
+                    required=["currency"],
+                ),
+            )
+           
         ]
     )
 ]
 
 SYSTEM_PROMPT = """
-Você é um assistente especializado em investimentos no mercado brasileiro.
-Responda apenas sobre: ações, renda fixa, FIIs, Tesouro Direto, SELIC, CDI, IPCA, carteiras e rendimentos reais de ações e títulos públicos.
+Você é um assistente especializado em investimentos no mercado brasileiro. Lembre-se, você é um facilitador de educação, utilize linguagem simples e clara.
+Responda apenas sobre: ações, renda fixa, FIIs, Tesouro Direto, SELIC, CDI, IPCA, carteiras e rendimentos reais de ações e títulos públicos, única excessão é ensinar sobre criptomoedas e informações sobre bitcoin.
 Use as ferramentas disponíveis para buscar dados reais antes de responder.
 Sempre avise que suas respostas são educativas e não constituem recomendação profissional.
 
@@ -238,7 +302,7 @@ Sempre avise que suas respostas são educativas e não constituem recomendação
 **Agressivo**
 - Renda fixa: 20–35%
 - Multimercado/FII: 10–15%
-- Renda variável: 40–60%
+- Renda variável: 40–60%nn
 - Produtos compatíveis: Opções/Derivativos, Ações small caps, Criptoativos, Fundos long & short, COE, FIP/Venture capital
 
 ---
@@ -248,11 +312,13 @@ Sempre avise que suas respostas são educativas e não constituem recomendação
 
 FUNCOES = {
     "get_data_atual": get_data_atual,
-    "get_meta_selic": get_meta_selic,
+    "get_selic_meta": get_selic_meta,
+    "get_cdi_acumulada": get_cdi_acumulada,
     "get_ipca_acumulado": get_ipca_acumulado,
     "get_stock_price": get_stock_price,
-    "get_selic_real": get_selic_real,
+    "get_selic_efetiva": get_selic_efetiva,
     "get_ipca": get_ipca,
     "get_perfil_investidor": get_perfil_investidor,
-    "get_selic_mensal": get_selic_mensal,
+    "get_bitcoin_info": get_bitcoin_info,
+    "get_currency_conversion": get_currency_conversion,
 }

@@ -11,7 +11,7 @@ export async function GET(req) {
     const { data, error } = await supabase.from('perfil_teste').select('*').eq('id', id).single()
     if (error) {
       console.error(error)
-      return Response.json({ error: 'Erro ao buscar perfil' }, { status: 404 })
+      return Response.json({ error: 'Erro ao buscar perfil' }, { status: 500 })
     }
     return Response.json({ data, success: true })
   }
