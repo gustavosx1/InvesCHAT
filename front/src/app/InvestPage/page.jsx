@@ -21,13 +21,25 @@ function formatCurrency(value) {
 }
 
 function calculateProjectedReturn({ valorInvestido, aporteMensal, taxaEfetiva, prazoAnos }) {
-  const valor = Number(valorInvestido)
+  const valor = Number(valorInvestido) || 0
   const aporte = Number(aporteMensal) || 0
   const taxaAnual = Number(taxaEfetiva) / 100
-  const anos = Number(prazoAnos)
+  const anos = Number(prazoAnos) || 0
   
-  if (!valor || !taxaAnual || !anos) {
+  // Se valores críticos forem inválidos, retorna 0
+  if (valor === 0 && aporte === 0) {
     return { valorEstimado: 0, rendimentoEstimado: 0, aportesTotal: 0 }
+  }
+  
+  if (taxaAnual === 0 || anos === 0) {
+    // Se não há taxa ou tempo, o valor não cresce
+    const meses = Math.round(anos * 12)
+    const aportesTotal = aporte * meses
+    return {
+      valorEstimado: valor + aportesTotal,
+      rendimentoEstimado: 0,
+      aportesTotal
+    }
   }
 
   // Converter taxa anual para mensal
@@ -37,18 +49,26 @@ function calculateProjectedReturn({ valorInvestido, aporteMensal, taxaEfetiva, p
   // Valor futuro do investimento inicial com juros compostos
   const vfInicial = valor * Math.pow(1 + taxaMensal, meses)
 
-  // Valor futuro dos aportes mensais (série de pagamentos)
+  // Valor futuro dos aportes mensais (série de pagamentos com juros compostos)
+  // Fórmula com aportes feitos no INÍCIO de cada período: VF = PMT × [((1 + i)^n - 1) / i] × (1 + i)
   let vfAportes = 0
   if (aporte > 0) {
-    vfAportes = aporte * (Math.pow(1 + taxaMensal, meses) - 1) / taxaMensal
+    if (taxaMensal > 1e-10) {
+      // Aportes começam no primeiro mês e rendem com juros compostos
+      vfAportes = aporte * (Math.pow(1 + taxaMensal, meses) - 1) / taxaMensal * (1 + taxaMensal)
+    } else {
+      // Se taxa é praticamente zero, aportes não rendem
+      vfAportes = aporte * meses
+    }
   }
 
   const valorEstimado = vfInicial + vfAportes
   const aportesTotal = aporte * meses
+  const rendimentoEstimado = valorEstimado - valor - aportesTotal
 
   return {
     valorEstimado,
-    rendimentoEstimado: valorEstimado - valor - aportesTotal,
+    rendimentoEstimado,
     aportesTotal
   }
 }
@@ -67,11 +87,17 @@ export default function CalculadoraRendaFixa() {
     const fetchTaxas = async () => {
       setLoadingTaxas(true)
       try {
-        // Buscar taxa CDI
-        const cdiRes = await fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados/ultimos/1?formato=json")
+        // Buscar taxa CDI acumulada dos últimos 12 meses
+        const cdiRes = await fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados/ultimos/12?formato=json")
         const cdiData = await cdiRes.json()
         if (cdiData && cdiData.length > 0) {
-          setTaxaCDI(parseFloat(cdiData[0].valor))
+          let acumulado = 1
+          for (const item of cdiData) {
+            const taxa = parseFloat(item.valor) / 100  // transforma % em decimal
+            acumulado *= 1 + taxa
+          }
+          // Converte para percentual anualizado (taxa efetiva do ano)
+          setTaxaCDI((acumulado - 1) * 100)
         }
 
         // Buscar taxa SELIC
