@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../components/AuthProvider'
 import { supabase } from '../../../lib/supabase'
+import {LogOut, Calculator} from "lucide-react"
 
 export default function Chat() {
   const { user } = useAuth()
@@ -92,13 +93,15 @@ export default function Chat() {
             <img src="/logo.png" alt="InvesChat Logo" className=" w-50 object-contain" />
           <div className="flex flex-wrap gap-3 justify-center sm:justify-end">
             <button onClick={handleInvest} className="btn-secondary text-sm px-4 py-2">
-              💰 Investimentos
+              <Calculator className='inline-block w-4 h-4 mr-1 mb-1'/>  
+              Calculadora
             </button>
             <button onClick={handlePerfil} className="btn-outline text-sm px-4 py-2">
               👤 Perfil
             </button>
             <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition-colors">
-              🚪 Sair
+              <LogOut className="inline-block w-4 h-4 mr-1 mb-1" />
+              Sair
             </button>
           </div>
         </div>
