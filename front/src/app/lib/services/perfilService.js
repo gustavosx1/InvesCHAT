@@ -13,8 +13,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 //não fui um programador pragmatico ;(
 export const getPerfilInvestidor = async ({ id }) => {
  try {
-    const { id } = await req.json();
-
     const { data, error } = await supabase
       .from("perfil_teste")
       .select("*")
