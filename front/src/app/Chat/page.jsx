@@ -18,7 +18,27 @@ export default function Chat() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
+  const SUGESTOES = [
+    "Qual a cotação do dólar hoje?",
+    "Qual a cotação do euro hoje?",
+    "O que é renda fixa?",
+    "O que são ações?",
+    "Por que a poupança rende tão pouco?",
+    "Qual é a diferença entre ações e renda fixa?",
+    "O que é o CDI e como ele afeta meus investimentos?",
+    "O que são FIIs?",
+    "Como funciona o Tesouro Direto?",
+    "O que é a taxa SELIC?",
+    "O que é a reunião do COPOM?",
+    "Qual é a importância do IPCA?",
+    "O que é IPCA?",
+    "Quanto foi o IPCA nos últimos 12 meses?",
+    "Qual a importância do perfil de investidor?",
+    "Como calcular o rendimento real de uma ação?",
+    "Qual o valor do bitcoin hoje?",
+  ]
 
+  const random = Math.floor(Math.random() * SUGESTOES.length)
   useEffect(scrollToBottom, [messages])
 
   useEffect(() => {
@@ -116,7 +136,7 @@ export default function Chat() {
                 <span className="text-2xl">💬</span>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Bem-vindo ao InvesChat!</h3>
-              <p className="text-gray-500">Faça perguntas sobre investimentos e receba conselhos personalizados.</p>
+              <p className="text-gray-500">Como posso ajudar você hoje?</p>
             </div>
           )}
 
@@ -158,7 +178,7 @@ export default function Chat() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !isLoading && sendMessage()}
                 className="input-modern"
-                placeholder="Digite sua pergunta sobre investimentos..."
+                placeholder={SUGESTOES[random]}
                 disabled={isLoading}
               />
             </div>
