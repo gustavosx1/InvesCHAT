@@ -58,21 +58,4 @@ export async function POST(req) {
     );
   }
 }
-    const { id, perfil } = await req.json()
     
-    const { data, error } = await supabase
-      .from('perfil_teste')
-      .update({ perfil: perfil })
-      .eq('id', id)
-    
-    if (error) {
-      console.error(error)
-      return Response.json({ error: 'Erro ao atualizar perfil' }, { status: 500 })
-    }
-    
-    return Response.json({ data, success: true })
-  } catch (error) {
-    console.error('Erro na rota:', error)
-    return Response.json({ error: 'Erro interno do servidor' }, { status: 500 })
-  }
-}
