@@ -26,13 +26,13 @@ export default function Chat() {
         return
     }
     //cria nova sessão do ChatBot
-    fetch('http://localhost:8000/api/new-session', {
+    fetch('/api/chat/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({user_id: user.id})
     })
     .then(res => res.json())
-    .then(data => setSessionId(data.session_id))
+    .then(data => setSessionId(data.sessionId))
   }, [user])
 
   const sendMessage = async () => {
@@ -45,7 +45,7 @@ export default function Chat() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pergunta: input, session_id: sessionId, user_id: user.id })

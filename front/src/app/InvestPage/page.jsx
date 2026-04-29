@@ -88,23 +88,17 @@ export default function CalculadoraRendaFixa() {
       setLoadingTaxas(true)
       try {
         // Buscar taxa CDI acumulada dos últimos 12 meses
-        const cdiRes = await fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados/ultimos/12?formato=json")
-        const cdiData = await cdiRes.json()
-        if (cdiData && cdiData.length > 0) {
-          let acumulado = 1
-          for (const item of cdiData) {
-            const taxa = parseFloat(item.valor) / 100  // transforma % em decimal
-            acumulado *= 1 + taxa
-          }
-          // Converte para percentual anualizado (taxa efetiva do ano)
-          setTaxaCDI((acumulado - 1) * 100)
+        const cdiRes = await fetch("/api/data/cdi")
+        const cdiJson = await cdiRes.json()
+        if (cdiJson.dados && cdiJson.dados.cdi_12_meses) {
+          setTaxaCDI(cdiJson.dados.cdi_12_meses)
         }
 
         // Buscar taxa SELIC
-        const selicRes = await fetch("https://api.bcb.gov.br/dados/serie/bcdata.sgs.4189/dados/ultimos/1?formato=json")
-        const selicData = await selicRes.json()
-        if (selicData && selicData.length > 0) {
-          setTaxaSELIC(parseFloat(selicData[0].valor))
+        const selicRes = await fetch("/api/data/selic-atual")
+        const selicJson = await selicRes.json()
+        if (selicJson.dados && selicJson.dados.taxa_selic_atual) {
+          setTaxaSELIC(parseFloat(selicJson.dados.taxa_selic_atual))
         }
       } catch (err) {
         console.error("Erro ao buscar taxas:", err)
