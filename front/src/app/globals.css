@@ -40,7 +40,15 @@ body {
   @apply bg-primary-green hover:bg-primary-green/90 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
 }
 
-.btn-outline {
+.btn-outline-blue {
+  @apply border-2 border-primary-blue text-primary-blue hover:bg-primary-blue hover:text-white font-medium px-6 py-3 rounded-lg transition-all duration-200;
+}
+
+.btn-outline-red {
+  @apply border-2 border-primary-blue text-primary-blue hover:bg-primary-blue hover:text-white font-medium px-6 py-3 rounded-lg transition-all duration-200;
+}
+
+.btn-outline-green {
   @apply border-2 border-primary-blue text-primary-blue hover:bg-primary-blue hover:text-white font-medium px-6 py-3 rounded-lg transition-all duration-200;
 }
 

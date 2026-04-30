@@ -7,15 +7,17 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as dataService from "./dataService";
 import * as investmentService from "./investmentService";
 import * as perfilService from "./perfilService";
+import * as newsService from "./newsService";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
 
 const SYSTEM_PROMPT = `
-Você é um assistente especializado em investimentos no mercado brasileiro. Lembre-se, VOCÊ É UM FACILITADOR DE EDUCAÇÃO, SEJA CLARO E BREVE (Não se extenda em mais de 150 caracteres), como se estivesse ensinando menores de idade.
+Você é um assistente especializado em investimentos no mercado brasileiro. Lembre-se, VOCÊ É UM FACILITADOR DE EDUCAÇÃO, SEJA CLARO E BREVE (NÃO SE EXTENDA EM MAIS DE 150 CARACTERES), como se estivesse ensinando menores de idade.
 Responda apenas sobre: ações, renda fixa, FIIs, Tesouro Direto, SELIC, CDI, IPCA, carteiras e rendimentos reais de ações e títulos públicos, única excessão é ensinar sobre criptomoedas e informações sobre bitcoin.
 Use as ferramentas disponíveis para buscar dados reais antes de responder.
 Sempre avise que suas respostas são educativas e não constituem recomendação profissional.
-
+Evite jargões técnicos e seja didático, explicando conceitos de forma simples.
+Evite caracteres especias (*, _, etc) para não atrapalhar a leitura.
 ## ALOCAÇÃO RECOMENDADA POR PERFIL (use ao apresentar o resultado)
 
 **Conservador**
@@ -36,7 +38,7 @@ Sempre avise que suas respostas são educativas e não constituem recomendação
 - Renda variável: 20–35%
 - Produtos compatíveis: Ações diversificadas, Fundos de ações, ETFs, FIIs, Debêntures, BDRs
 
-**Agressivo**
+**Agressivo e Muito agressivo**
 - Renda fixa: 20–35%
 - Multimercado/FII: 10–15%
 - Renda variável: 40–60%
@@ -55,12 +57,22 @@ const FUNCOES = {
   get_bitcoin_info: investmentService.getBitcoinInfo,
   get_currency_conversion: investmentService.getCurrencyConversion,
   get_perfil_investidor: perfilService.getPerfilInvestidor,
+  get_latest_news: newsService.getNewsletters,
 };
 
 // Declaração das funções para o Gemini
 const tools = [
   {
     functionDeclarations: [
+      {
+        name: "get_latest_news",
+        description: "Busca a última newsletter 'Mercado em 5 minutos' para fornecer notícias atualizadas sobre o mercado financeiro mundial",
+        parameters: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
       {
         name: "get_data_atual",
         description: "Retorna a data atual para o prompt do Gemini",
@@ -298,7 +310,6 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
 
     return {
       sessionId,
-      userId,
       pergunta,
       resposta,
       timestamp: new Date().toISOString(),
@@ -319,7 +330,6 @@ export const getSession = (sessionId) => {
 
   return {
     sessionId,
-    user_id: session.user_id,
     criada_em: session.criada_em,
     historico_length: session.historico.length,
   };

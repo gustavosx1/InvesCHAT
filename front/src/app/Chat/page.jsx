@@ -25,7 +25,9 @@ export default function Chat() {
     "O que são ações?",
     "Por que a poupança rende tão pouco?",
     "Qual é a diferença entre ações e renda fixa?",
-    "O que é o CDI e como ele afeta meus investimentos?",
+    "O que é o CDI?",
+    "Quanto rende o CDI hoje?",
+    "Quanto rende o Tesouro Selic hoje?",
     "O que são FIIs?",
     "Como funciona o Tesouro Direto?",
     "O que é a taxa SELIC?",
@@ -34,8 +36,28 @@ export default function Chat() {
     "O que é IPCA?",
     "Quanto foi o IPCA nos últimos 12 meses?",
     "Qual a importância do perfil de investidor?",
-    "Como calcular o rendimento real de uma ação?",
+    "Como calcular o rendimento de uma ação?",
     "Qual o valor do bitcoin hoje?",
+    "O que é uma carteira de investimentos?",
+    "Como diversificar meus investimentos?",
+    "O que é risco de mercado?",
+    "O que é risco de crédito?",
+    "O que é risco de liquidez?",
+    "O que é uma debênture?",
+    "O que é um CDB?",
+    "O que é um fundo de investimento?",
+    "O que é um ETF?",
+    "O que são ações preferenciais e ordinárias?",
+    "O que são CRI's e CRA's?",
+    "O que é uma LCI e LCA?",
+    "O que é um fundo multimercado?",
+    "O que é um fundo de ações?",
+    "O que é um fundo de renda fixa?",
+    "O que é um fundo cambial?",
+    "O que é um fundo de crédito privado?",
+    "O que é um fundo de índice (ETF)?",
+    "O que são BDRs?",
+    "Quais as notícias da semana?",
   ]
 
   const random = Math.floor(Math.random() * SUGESTOES.length)
@@ -112,14 +134,14 @@ export default function Chat() {
         <div className="max-w-4xl mx-auto flex flex-col gap-4 sm:flex-row justify-between items-center">       
             <img src="/logo.png" alt="InvesChat Logo" className=" w-50 object-contain" />
           <div className="flex flex-wrap gap-3 justify-center sm:justify-end">
-            <button onClick={handleInvest} className="btn-secondary text-sm px-4 py-2">
+            <button onClick={handleInvest} className="btn-outline-green">
               <Calculator className='inline-block w-4 h-4 mr-1 mb-1'/>  
-              Calculadora
+              Simular
             </button>
-            <button onClick={handlePerfil} className="btn-outline text-sm px-4 py-2">
+            <button onClick={handlePerfil} className="btn-outline-blue">
               👤 Perfil
             </button>
-            <button onClick={handleLogout} className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-2 rounded-lg transition-colors">
+            <button onClick={handleLogout} className="btn-outline-red">
               <LogOut className="inline-block w-4 h-4 mr-1 mb-1" />
               Sair
             </button>
@@ -136,7 +158,7 @@ export default function Chat() {
                 <span className="text-2xl">💬</span>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Bem-vindo ao InvesChat!</h3>
-              <p className="text-gray-500">Como posso ajudar você hoje?</p>
+              <p className="text-gray-500">Notícias e dados em tempo real do mercado financeiro</p>
             </div>
           )}
 

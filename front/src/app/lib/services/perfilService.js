@@ -26,8 +26,10 @@ export const getPerfilInvestidor = async ({ id }) => {
         { status: 500 }
       );
     }
+    console.log("Perfil encontrado:", data);
+    console.log("Perfil encontrado:", data.perfil);
+    return { perfil: data.perfil, success: true };
 
-    return Response.json({ data, success: true });
   } catch (error) {
     console.error("Erro na rota:", error);
     return Response.json(
