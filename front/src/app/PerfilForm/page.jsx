@@ -214,34 +214,26 @@ export default function PerfilForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full gradient-bg flex items-center justify-center">
-            <span className="text-2xl">📋</span>
-          </div>
-          <h1 className="text-3xl font-bold text-gradient mb-2">Teste de Adequação de Perfil</h1>
-          <p className="text-gray-600">Responda as 10 perguntas para determinar seu perfil de investidor</p>
-        </div>
-
-        {/* Progress */}
-        <div className="mb-6">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Progresso</span>
-            <span>{Object.keys(form).length} de {SUITABILITY_QUESTIONS.length}</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-primary-green to-primary-blue h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(Object.keys(form).length / SUITABILITY_QUESTIONS.length) * 100}%` }}
-            ></div>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header - Fixed with gradient background */}
+      <div className="sticky top-0 z-50 bg-gradient-to-r from-primary-blue/95 to-primary-green/95 shadow-lg px-3 py-4 sm:px-6 sm:py-6">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+            <div className="flex-1 items-center">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 flex items-center gap-3 mt-1">
+                <span> QUIZ DO PERFIL DE INVESTIDOR</span>
+              </h1>
+              </div>
+           
           </div>
         </div>
+      </div>
 
-        {/* Form Card */}
-        <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+        <div className="max-w-3xl mx-auto">
+          {/* Form content wrapper */}
+          <div className="space-y-8 pb-28 sm:pb-20">
             {SUITABILITY_QUESTIONS.map((question, index) => (
               <div key={question.id} className="pb-6 border-b border-gray-200 last:border-b-0 last:pb-0">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -284,41 +276,39 @@ export default function PerfilForm() {
                 </p>
               </div>
             )}
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <button
-                type="submit"
-                disabled={isSubmitting || !isAllAnswered}
-                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Salvando...
-                  </div>
-                ) : (
-                  'Salvar Perfil'
-                )}
-              </button>
-
-              {validaPerfil && (
-                <button
-                  type="button"
-                  onClick={handleCancela}
-                  className="btn-outline flex-1"
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </form>
+          </div>
         </div>
+      </div>
 
-        {/* Info Section */}
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
-            Suas respostas são confidenciais e serão usadas apenas para personalizar suas recomendações.
-          </p>
+      {/* Footer - Fixed with Buttons */}
+      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4 shadow-lg">
+        <div className="max-w-3xl mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+            <button
+              type="submit"
+              disabled={isSubmitting || !isAllAnswered}
+              className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-black px-4 py-2 order-2 sm:order-1"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  SALVANDO...
+                </div>
+              ) : (
+                'SALVAR PERFIL'
+              )}
+            </button>
+
+            {validaPerfil && (
+              <button
+                type="button"
+                onClick={handleCancela}
+                className="btn-cancel flex-1 px-4 py-2 order-1 sm:order-2"
+              >
+                CANCELAR
+              </button>
+            )}
+          </form>
         </div>
       </div>
     </div>

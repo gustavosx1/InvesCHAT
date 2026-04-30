@@ -33,9 +33,12 @@ body {
 
 /* Modern design utilities */
 .btn-primary {
-  @apply bg-primary-blue hover:bg-primary-blue/90 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  @apply bg-primary-green hover:bg-primary-green/90 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
 }
 
+.btn-cancel{
+  @apply bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+}
 .btn-secondary {
   @apply bg-primary-green hover:bg-primary-green/90 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
 }

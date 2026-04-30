@@ -129,20 +129,20 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-4 sm:px-6">
-        <div className="max-w-4xl mx-auto flex flex-col gap-4 sm:flex-row justify-between items-center">       
-            <img src="/logo.png" alt="InvesChat Logo" className=" w-50 object-contain" />
-          <div className="flex flex-wrap gap-3 justify-center sm:justify-end">
-            <button onClick={handleInvest} className="btn-outline-green">
-              <Calculator className='inline-block w-4 h-4 mr-1 mb-1'/>  
+      {/* Header - Fixed/Sticky */}
+      <div className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
+        <div className="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row justify-between items-center">
+          <img src="/logo.png" alt="InvesChat Logo" className="h-10 sm:h-12 object-contain" />
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
+            <button onClick={handleInvest} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
+              <Calculator className='inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1' />
               Simular
             </button>
-            <button onClick={handlePerfil} className="btn-outline-blue">
+            <button onClick={handlePerfil} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
               👤 Perfil
             </button>
-            <button onClick={handleLogout} className="btn-outline-red">
-              <LogOut className="inline-block w-4 h-4 mr-1 mb-1" />
+            <button onClick={handleLogout} className="btn-outline-red text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
+              <LogOut className="inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1 mb-1" />
               Sair
             </button>
           </div>
@@ -190,16 +190,16 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Input */}
-      <div className="bg-white border-t border-gray-200 p-4 sm:p-6">
+      {/* Input - Fixed/Sticky at bottom */}
+      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 p-3 sm:p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col gap-4 sm:flex-row">
-            <div className="flex-1">
+          <div className="flex flex-col gap-2 sm:gap-4 sm:flex-row">
+            <div className="flex-1 min-w-0">
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !isLoading && sendMessage()}
-                className="input-modern"
+                className="input-modern text-sm w-full"
                 placeholder={SUGESTOES[random]}
                 disabled={isLoading}
               />
@@ -207,10 +207,10 @@ export default function Chat() {
             <button
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px] sm:min-w-[140px] text-sm px-3 sm:px-4 py-2"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
               ) : (
                 'Enviar'
               )}

@@ -174,8 +174,20 @@ export default function CalculadoraRendaFixa() {
   }, [form, taxaEfetiva])
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen p-4 bg-gray-50">
-      <div className="w-full max-w-4xl">
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header - Fixed */}
+      <div className="sticky top-0 z-50 bg-gradient-to-r from-primary-blue/95 to-primary-green/95 shadow-lg px-3 py-4 sm:px-6 sm:py-6">
+        <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:flex-row justify-between items-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1 flex items-center gap-3">SIMULADOR DE INVESTIMENTOS</h2>
+          <div className="flex gap-2">
+          
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-6 pb-28 sm:pb-24">
         <div className="mb-6 rounded-lg border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -359,15 +371,30 @@ export default function CalculadoraRendaFixa() {
               </div>
             )}
           </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button type="submit" className="btn-primary flex-1" disabled={loadingTaxas}>
-              {loadingTaxas ? "Carregando..." : "Calcular"}
-            </button>
-            <button type="button" onClick={handleCancela} className="btn-outline flex-1">Voltar</button>
-          </div>
         </form>
+        </div>
+      </div>
+      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4 shadow-lg">
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+            <button 
+              type="submit" 
+              className="btn-primary flex-1 text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1" 
+              disabled={loadingTaxas}
+            >
+              {loadingTaxas ? "CALCULANDO..." : "CALCULAR"}
+            </button>
+            <button 
+              type="button" 
+              onClick={handleCancela} 
+              className="btn-cancel flex-1 text-sm px-4 py-2 order-1 sm:order-2"
+            >
+              VOLTAR
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )
 }
+
