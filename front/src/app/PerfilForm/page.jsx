@@ -215,83 +215,81 @@ export default function PerfilForm() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header - Fixed with gradient background */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-primary-blue/95 to-primary-green/95 shadow-lg px-3 py-4 sm:px-6 sm:py-6">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
-            <div className="flex-1 items-center">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 flex items-center gap-3 mt-1">
-                <span> QUIZ DO PERFIL DE INVESTIDOR</span>
-              </h1>
-              </div>
-           
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-6">
-        <div className="max-w-3xl mx-auto">
-          {/* Form content wrapper */}
-          <div className="space-y-8 pb-28 sm:pb-20">
-            {SUITABILITY_QUESTIONS.map((question, index) => (
-              <div key={question.id} className="pb-6 border-b border-gray-200 last:border-b-0 last:pb-0">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  <span className="text-primary-green font-bold">{index + 1}.</span> {question.pergunta}
-                </h3>
-                <div className="space-y-3">
-                  {question.opcoes.map((opcao) => (
-                    <label 
-                      key={`${question.id}-${opcao.letra}`}
-                      className="flex items-start p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-primary-green hover:bg-primary-green/5 transition-all"
-                    >
-                      <input
-                        type="radio"
-                        name={`pergunta-${question.id}`}
-                        value={opcao.pontos}
-                        checked={form[question.id] === opcao.pontos}
-                        onChange={(e) => handleChange(question.id, parseInt(e.target.value))}
-                        className="mt-1 w-4 h-4 text-primary-green cursor-pointer"
-                      />
-                      <div className="ml-3 flex-1">
-                        <div className="font-medium text-gray-800">
-                          <span className="text-primary-green font-bold">{opcao.letra})</span> {opcao.texto}
-                        </div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
+        <div className="max-w-4xl mx-auto space-y-6 pb-28 sm:pb-24">
+          <div className="rounded-lg border bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold mb-2 text-gradient">Quiz do Perfil de Investidor</h1>
+                <p className="text-sm text-gray-600">
+                  Responda as perguntas abaixo para determinar seu perfil de investidor entre: Conservador, Moderado, Agressivo e Muito Agressivo.
+                </p>
               </div>
-            ))}
+            </div>
+          </div>
 
-            {/* Profile Preview */}
-            {isAllAnswered && (
-              <div className="bg-gradient-to-r from-primary-green/10 to-primary-blue/10 rounded-lg p-4 border border-primary-green/20 mt-6">
-                <h3 className="font-semibold text-gray-800 mb-2">Seu perfil estimado:</h3>
-                <p className="text-lg font-medium text-gradient capitalize">
-                  {determinarPerfil()}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Este perfil será usado para personalizar suas recomendações de investimento.
-                </p>
-              </div>
-            )}
+          <div className="max-w-3xl mx-auto">
+            {/* Form content wrapper */}
+            <div className="space-y-8 pb-28 sm:pb-20">
+              {SUITABILITY_QUESTIONS.map((question, index) => (
+                <div key={question.id} className="pb-6 border-b border-gray-200 last:border-b-0 last:pb-0">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    <span className="text-primary-green font-bold">{index + 1}.</span> {question.pergunta}
+                  </h3>
+                  <div className="space-y-3">
+                    {question.opcoes.map((opcao) => (
+                      <label 
+                        key={`${question.id}-${opcao.letra}`}
+                        className="flex items-start p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-primary-green hover:bg-primary-green/5 transition-all"
+                      >
+                        <input
+                          type="radio"
+                          name={`pergunta-${question.id}`}
+                          value={opcao.pontos}
+                          checked={form[question.id] === opcao.pontos}
+                          onChange={(e) => handleChange(question.id, parseInt(e.target.value))}
+                          className="mt-1 w-4 h-4 text-primary-green cursor-pointer"
+                        />
+                        <div className="ml-3 flex-1">
+                          <div className="font-medium text-gray-800">
+                            <span className="text-primary-green font-bold">{opcao.letra})</span> {opcao.texto}
+                          </div>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Profile Preview */}
+              {isAllAnswered && (
+                <div className="bg-gradient-to-r from-primary-green/10 to-primary-blue/10 rounded-lg p-4 border border-primary-green/20 mt-6">
+                  <h3 className="font-semibold text-gray-800 mb-2">Seu perfil estimado:</h3>
+                  <p className="text-lg font-medium text-gradient capitalize">
+                    {determinarPerfil()}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Este perfil será usado para personalizar suas recomendações de investimento.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Footer - Fixed with Buttons */}
-      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4 shadow-lg">
-        <div className="max-w-3xl mx-auto">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 px-3 py-2 sm:px-6 sm:py-4 shadow-lg">
+        <div className="max-w-4xl mx-auto">
+          <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-4">
             <button
               type="submit"
               disabled={isSubmitting || !isAllAnswered}
-              className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed text-sm text-black px-4 py-2 order-2 sm:order-1"
+              className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm px-4 py-1.5 sm:py-2"
             >
               {isSubmitting ? (
                 <div className="flex items-center justify-center">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                   SALVANDO...
                 </div>
               ) : (
@@ -303,7 +301,7 @@ export default function PerfilForm() {
               <button
                 type="button"
                 onClick={handleCancela}
-                className="btn-cancel flex-1 px-4 py-2 order-1 sm:order-2"
+                className="btn-cancel flex-1 text-xs sm:text-sm px-4 py-1.5 sm:py-2"
               >
                 CANCELAR
               </button>

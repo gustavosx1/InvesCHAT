@@ -30,7 +30,7 @@ export default function Login() {
       <div className="w-full max-w-md p-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">InvesChat</h1>
-          <p className="text-white/80">Seu assistente de investimentos inteligente</p>
+          <p className="text-white/80">Sua plataforma de educação financeira</p>
         </div>
 
         <div className="card">
@@ -70,7 +70,7 @@ export default function Login() {
                 label: 'text-gray-700 font-medium',
               },
             }}
-            providers={['google', 'github']}
+            providers={['google']}
             localization={{
               variables: {
                 sign_in: {

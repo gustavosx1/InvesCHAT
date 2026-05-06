@@ -174,17 +174,7 @@ export default function CalculadoraRendaFixa() {
   }, [form, taxaEfetiva])
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header - Fixed */}
-      <div className="sticky top-0 z-50 bg-gradient-to-r from-primary-blue/95 to-primary-green/95 shadow-lg px-3 py-4 sm:px-6 sm:py-6">
-        <div className="max-w-4xl mx-auto flex flex-col gap-2 sm:flex-row justify-between items-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1 flex items-center gap-3">SIMULADOR DE INVESTIMENTOS</h2>
-          <div className="flex gap-2">
-          
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto px-3 py-6 sm:px-6">
         <div className="max-w-4xl mx-auto space-y-6 pb-28 sm:pb-24">
@@ -196,9 +186,7 @@ export default function CalculadoraRendaFixa() {
                 Calcule a rentabilidade de investimentos em renda fixa. Selecione o índice, adicione o spread e veja a projeção para o período desejado.
               </p>
             </div>
-            <div className="w-12 h-12 rounded-full gradient-bg flex items-center justify-center">
-              <span className="text-white text-xl">📊</span>
-            </div>
+           
           </div>
         </div>
 
@@ -218,7 +206,7 @@ export default function CalculadoraRendaFixa() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="mb-8 grid gap-4 rounded-lg border bg-white p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="mb-0 grid gap-4 rounded-lg border bg-white p-6 shadow-sm">
           {error && <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
           {message && <div className="rounded border border-green-300 bg-green-50 p-3 text-sm text-green-700">{message}</div>}
 
@@ -374,24 +362,27 @@ export default function CalculadoraRendaFixa() {
         </form>
         </div>
       </div>
-      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 px-3 py-3 sm:px-6 sm:py-4 shadow-lg">
+
+      {/* Footer */}
+      <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 px-3 py-2 sm:px-6 sm:py-4 shadow-lg">
         <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row sm:gap-4">
+          <div className="flex gap-2 sm:gap-4">
             <button 
               type="submit" 
-              className="btn-primary flex-1 text-sm px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed order-2 sm:order-1" 
+              className="btn-primary flex-1 text-xs sm:text-sm px-4 py-1.5 sm:py-2 disabled:opacity-50 disabled:cursor-not-allowed" 
               disabled={loadingTaxas}
+              onClick={handleSubmit}
             >
               {loadingTaxas ? "CALCULANDO..." : "CALCULAR"}
             </button>
             <button 
               type="button" 
               onClick={handleCancela} 
-              className="btn-cancel flex-1 text-sm px-4 py-2 order-1 sm:order-2"
+              className="btn-cancel flex-1 text-xs sm:text-sm px-4 py-1.5 sm:py-2"
             >
               VOLTAR
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>

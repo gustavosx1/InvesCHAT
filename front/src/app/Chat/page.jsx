@@ -3,21 +3,23 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../components/AuthProvider'
+import { useChatContext } from '../../components/ChatProvider'
 import { supabase } from '../../../lib/supabase'
-import {LogOut, Calculator} from "lucide-react"
+import { MarkdownMessage } from '../../components/MarkdownMessage'
+import { LogOut, Calculator, Send } from "lucide-react"
 
 export default function Chat() {
   const { user } = useAuth()
   const router = useRouter()
-  const [messages, setMessages] = useState([])
+  const { messages, setMessages, sessionId, setSessionId } = useChatContext()
   const [input, setInput] = useState('')
-  const [sessionId, setSessionId] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
+
   const SUGESTOES = [
     "Qual a cotação do dólar hoje?",
     "Qual a cotação do euro hoje?",
@@ -61,21 +63,24 @@ export default function Chat() {
   ]
 
   const random = Math.floor(Math.random() * SUGESTOES.length)
+  
   useEffect(scrollToBottom, [messages])
 
   useEffect(() => {
-    if (!user){
-        return
-    }
-    //cria nova sessão do ChatBot
+    if (!user) return
+    
+    // Se já existe sessionId, não criar novo
+    if (sessionId) return
+
+    // Criar nova sessão
     fetch('/api/chat/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({user_id: user.id})
+      body: JSON.stringify({ user_id: user.id })
     })
-    .then(res => res.json())
-    .then(data => setSessionId(data.sessionId))
-  }, [user])
+      .then(res => res.json())
+      .then(data => setSessionId(data.sessionId))
+  }, [user, sessionId, setSessionId])
 
   const sendMessage = async () => {
     if (!user || !sessionId) return
@@ -94,7 +99,6 @@ export default function Chat() {
       })
 
       const data = await response.json()
-      console.log('Resposta do backend:', data)
       const botMessage = { role: 'bot', text: data.resposta }
       setMessages(prev => [...prev, botMessage])
     } catch (error) {
@@ -150,7 +154,7 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-4xl mx-auto space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-12">
@@ -169,7 +173,11 @@ export default function Chat() {
                   ? 'bg-primary-blue text-white rounded-br-sm'
                   : 'bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100'
               }`}>
-                <p className="text-sm leading-relaxed">{msg.text}</p>
+                {msg.role === 'user' ? (
+                  <p className="text-sm leading-relaxed">{msg.text}</p>
+                ) : (
+                  <MarkdownMessage text={msg.text} />
+                )}
               </div>
             </div>
           ))}
@@ -193,26 +201,25 @@ export default function Chat() {
       {/* Input - Fixed/Sticky at bottom */}
       <div className="sticky bottom-0 z-50 bg-white border-t border-gray-200 p-3 sm:p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col gap-2 sm:gap-4 sm:flex-row">
-            <div className="flex-1 min-w-0">
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && !isLoading && sendMessage()}
-                className="input-modern text-sm w-full"
-                placeholder={SUGESTOES[random]}
-                disabled={isLoading}
-              />
-            </div>
+          <div className="flex gap-2 sm:gap-3">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && !isLoading && sendMessage()}
+              className="input-modern text-sm flex-1"
+              placeholder={SUGESTOES[random]}
+              disabled={isLoading}
+            />
             <button
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px] sm:min-w-[140px] text-sm px-3 sm:px-4 py-2"
+              className="bg-primary-blue hover:bg-primary-blue/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg p-3 flex items-center justify-center transition-colors"
+              title="Enviar mensagem"
             >
               {isLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
-                'Enviar'
+                <Send className="w-4 h-4" />
               )}
             </button>
           </div>

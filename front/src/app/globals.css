@@ -73,3 +73,20 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.span-gradient {
+  background: linear-gradient(135deg, #418133 0%, #0F5D98 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  background-color: linear-gradient(135deg, #418133 0%, #0F5D98 100%);
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 640px) {
+  .span-gradient{
+    display: none;
+  }
+}
