@@ -10,7 +10,7 @@ import { MarkdownMessage } from '../../components/MarkdownMessage'
 import { LogOut, Calculator, Send, ClipboardCheck, User, Menu, X } from "lucide-react"
 
 export default function Chat() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const router = useRouter()
   const { messages, setMessages, sessionId, setSessionId } = useChatContext()
   const [input, setInput] = useState('')
@@ -67,6 +67,12 @@ export default function Chat() {
   const random = Math.floor(Math.random() * SUGESTOES.length)
   
   useEffect(scrollToBottom, [messages])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [loading, user, router])
 
   useEffect(() => {
     if (!user) return
@@ -128,7 +134,7 @@ export default function Chat() {
     router.push('/InvestPage')
   }
 
-  if (!user) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-bg">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
