@@ -9,29 +9,40 @@ export default function Home() {
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading) {
+    const checkUserFlow = async () => {
       if (!user) {
         router.push('/login')
-      } else {
-        checkPerfil()
+        return
       }
-    }
-  }, [user, loading, router])
 
-  const checkPerfil = async () => {
-    const { supabase } = await import('../../lib/supabase')
-    const { data, error } = await supabase
-      .from('perfil_teste')
-      .select('perfil')
-      .eq('id', user.id)
-      .single()
+      const { supabase } = await import('../../lib/supabase')
 
-    if (error || !data) {
-      router.push('/PerfilForm')
-    } else {
+      const { data: perfilData, error: perfilError } = await supabase
+        .from('perfil')
+        .select('perfil')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (perfilError || !perfilData) {
+        router.push('/PerfilForm')
+        return
+      }
+
+      const quizResponse = await fetch(`/api/quiz?user_id=${user.id}`)
+      const quizData = await quizResponse.json()
+
+      if (!quizResponse.ok || !quizData.success || !quizData.data || quizData.data.length === 0) {
+        router.push('/Quiz')
+        return
+      }
+
       router.push('/Chat')
     }
-  }
+
+    if (!loading) {
+      checkUserFlow()
+    }
+  }, [user, loading, router])
 
   if (loading) {
     return (

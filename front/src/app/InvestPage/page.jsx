@@ -20,56 +20,107 @@ function formatCurrency(value) {
   }).format(Number(value) || 0)
 }
 
-function calculateProjectedReturn({ valorInvestido, aporteMensal, taxaEfetiva, prazoAnos }) {
+function formatDate(value) {
+  if (!value) return "-"
+  return new Intl.DateTimeFormat("pt-BR").format(value)
+}
+
+function parseLocalDate(value) {
+  if (!value || typeof value !== "string") return null
+  const [year, month, day] = value.split("-").map(Number)
+  if (!year || !month || !day) return null
+
+  const date = new Date(year, month - 1, day)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+
+  return date
+}
+
+function addMonthsKeepingDay(baseDate, monthsToAdd) {
+  const result = new Date(baseDate)
+  const originalDay = result.getDate()
+
+  result.setDate(1)
+  result.setMonth(result.getMonth() + monthsToAdd)
+
+  const lastDayOfMonth = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate()
+  result.setDate(Math.min(originalDay, lastDayOfMonth))
+
+  return result
+}
+
+function calculateProjectedReturn({ valorInvestido, aporteMensal, taxaEfetiva, prazoAnos, dataAplicacao }) {
   const valor = Number(valorInvestido) || 0
   const aporte = Number(aporteMensal) || 0
   const taxaAnual = Number(taxaEfetiva) / 100
   const anos = Number(prazoAnos) || 0
+  const dataInicial = parseLocalDate(dataAplicacao)
+  const prazoMeses = Math.max(0, Math.round(anos * 12))
+
+  const emptyProjection = {
+    valorEstimado: 0,
+    rendimentoEstimado: 0,
+    aportesTotal: 0,
+    quantidadeAportes: 0,
+    dataFinal: null
+  }
   
   // Se valores críticos forem inválidos, retorna 0
   if (valor === 0 && aporte === 0) {
-    return { valorEstimado: 0, rendimentoEstimado: 0, aportesTotal: 0 }
-  }
-  
-  if (taxaAnual === 0 || anos === 0) {
-    // Se não há taxa ou tempo, o valor não cresce
-    const meses = Math.round(anos * 12)
-    const aportesTotal = aporte * meses
-    return {
-      valorEstimado: valor + aportesTotal,
-      rendimentoEstimado: 0,
-      aportesTotal
-    }
+    return emptyProjection
   }
 
-  // Converter taxa anual para mensal
-  const taxaMensal = Math.pow(1 + taxaAnual, 1/12) - 1
-  const meses = Math.round(anos * 12)
+  if (!dataInicial || prazoMeses <= 0) {
+    return emptyProjection
+  }
 
-  // Valor futuro do investimento inicial com juros compostos
-  const vfInicial = valor * Math.pow(1 + taxaMensal, meses)
+  const dataFinal = addMonthsKeepingDay(dataInicial, prazoMeses)
+  const msPerDay = 1000 * 60 * 60 * 24
+  const baseComposta = 1 + Math.max(-0.999999, taxaAnual)
 
-  // Valor futuro dos aportes mensais (série de pagamentos com juros compostos)
-  // Fórmula com aportes feitos no INÍCIO de cada período: VF = PMT × [((1 + i)^n - 1) / i] × (1 + i)
-  let vfAportes = 0
+  let capitalInvestido = 0
+  let valorEstimado = 0
+  let quantidadeAportes = 0
+
+  const addCashFlow = (amount, date) => {
+    if (amount <= 0) return
+
+    const diasAteVencimento = Math.max(0, Math.round((dataFinal - date) / msPerDay))
+    const fator = baseComposta > 0 ? Math.pow(baseComposta, diasAteVencimento / 365) : 1
+
+    capitalInvestido += amount
+    valorEstimado += amount * fator
+  }
+
+  // Capital inicial aplicado na data de aplicação.
+  addCashFlow(valor, dataInicial)
+
+  // Aportes mensais na data de aniversário da aplicação (mesmo dia do mês, quando possível).
   if (aporte > 0) {
-    if (taxaMensal > 1e-10) {
-      // Aportes começam no primeiro mês e rendem com juros compostos
-      vfAportes = aporte * (Math.pow(1 + taxaMensal, meses) - 1) / taxaMensal * (1 + taxaMensal)
-    } else {
-      // Se taxa é praticamente zero, aportes não rendem
-      vfAportes = aporte * meses
+    for (let mes = 0; mes < prazoMeses; mes += 1) {
+      const dataAporte = addMonthsKeepingDay(dataInicial, mes)
+      if (dataAporte >= dataFinal) break
+
+      addCashFlow(aporte, dataAporte)
+      quantidadeAportes += 1
     }
   }
 
-  const valorEstimado = vfInicial + vfAportes
-  const aportesTotal = aporte * meses
-  const rendimentoEstimado = valorEstimado - valor - aportesTotal
+  const aportesTotal = aporte * quantidadeAportes
+  const rendimentoEstimado = valorEstimado - capitalInvestido
 
   return {
     valorEstimado,
     rendimentoEstimado,
-    aportesTotal
+    aportesTotal,
+    quantidadeAportes,
+    dataFinal
   }
 }
 
@@ -162,15 +213,13 @@ export default function CalculadoraRendaFixa() {
 
   const taxaEfetiva = calcularTaxaEfetiva()
   const projection = useMemo(() => {
-    if (taxaEfetiva > 0) {
-      return calculateProjectedReturn({
-        valorInvestido: form.valorInvestido,
-        aporteMensal: form.aporteMensal,
-        taxaEfetiva: taxaEfetiva,
-        prazoAnos: form.prazoAnos
-      })
-    }
-    return { valorEstimado: 0, rendimentoEstimado: 0, aportesTotal: 0 }
+    return calculateProjectedReturn({
+      valorInvestido: form.valorInvestido,
+      aporteMensal: form.aporteMensal,
+      taxaEfetiva: taxaEfetiva,
+      prazoAnos: form.prazoAnos,
+      dataAplicacao: form.dataAplicacao
+    })
   }, [form, taxaEfetiva])
 
   return (
@@ -324,7 +373,7 @@ export default function CalculadoraRendaFixa() {
 
           <div className="rounded border border-gray-200 bg-slate-50 p-4">
             <h2 className="text-lg font-semibold mb-2 text-gradient">Projeção de retorno</h2>
-            <p className="text-sm text-gray-600">Cálculo com juros compostos ao mês.</p>
+            <p className="text-sm text-gray-600">Cálculo com juros compostos e datas reais dos aportes mensais.</p>
             {loadingTaxas ? (
               <div className="mt-3 flex items-center justify-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-blue"></div>
@@ -347,6 +396,14 @@ export default function CalculadoraRendaFixa() {
                 <div className="rounded bg-white p-3 shadow-sm border border-gray-100">
                   <p className="text-xs uppercase text-gray-500">Taxa efetiva</p>
                   <p className="text-lg font-semibold text-primary-blue">{taxaEfetiva.toFixed(2)}% a.a.</p>
+                </div>
+                <div className="rounded bg-white p-3 shadow-sm border border-gray-100">
+                  <p className="text-xs uppercase text-gray-500">Quantidade de aportes</p>
+                  <p className="text-lg font-semibold text-slate-700">{projection.quantidadeAportes}</p>
+                </div>
+                <div className="rounded bg-white p-3 shadow-sm border border-gray-100">
+                  <p className="text-xs uppercase text-gray-500">Data final da projeção</p>
+                  <p className="text-lg font-semibold text-slate-700">{formatDate(projection.dataFinal)}</p>
                 </div>
                 <div className="rounded bg-white p-3 shadow-sm border border-gray-100 sm:col-span-2">
                   <p className="text-xs uppercase text-gray-500">Rendimento estimado (juros)</p>

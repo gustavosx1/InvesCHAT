@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../components/AuthProvider'
 import { useChatContext } from '../../components/ChatProvider'
 import { supabase } from '../../../lib/supabase'
 import { MarkdownMessage } from '../../components/MarkdownMessage'
-import { LogOut, Calculator, Send } from "lucide-react"
+import { LogOut, Calculator, Send, ClipboardCheck, User, Menu, X } from "lucide-react"
 
 export default function Chat() {
   const { user } = useAuth()
@@ -14,6 +15,7 @@ export default function Chat() {
   const { messages, setMessages, sessionId, setSessionId } = useChatContext()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -112,14 +114,17 @@ export default function Chat() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    setIsMobileMenuOpen(false)
     router.push('/login')
   }
 
   const handlePerfil = () => {
+    setIsMobileMenuOpen(false)
     router.push('/PerfilForm')
   }
 
   const handleInvest = () => {
+    setIsMobileMenuOpen(false)
     router.push('/InvestPage')
   }
 
@@ -135,22 +140,68 @@ export default function Chat() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header - Fixed/Sticky */}
       <div className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200 px-3 py-3 sm:px-6 sm:py-4">
-        <div className="max-w-4xl mx-auto flex flex-col gap-3 sm:flex-row justify-between items-center">
-          <img src="/logo.png" alt="InvesChat Logo" className="h-10 sm:h-12 object-contain" />
-          <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
-            <button onClick={handleInvest} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
-              <Calculator className='inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1' />
-              Simular
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-between gap-3">
+            <Image src="/logo.png" alt="InvesChat Logo" width={160} height={48} className="h-10 sm:h-12 w-auto object-contain" priority />
+
+            <button
+              onClick={() => setIsMobileMenuOpen(prev => !prev)}
+              className="sm:hidden inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-700 hover:bg-gray-100 transition-colors"
+              aria-label={isMobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav-menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-            <button onClick={handlePerfil} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
-              👤 Perfil
-            </button>
-            <button onClick={handleLogout} className="btn-outline-red text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
-              <LogOut className="inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1 mb-1" />
-              Sair
-            </button>
+
+            <div className="hidden sm:flex flex-wrap gap-2 justify-end">
+              <button onClick={handleInvest} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
+                <Calculator className='inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1' />
+                Simular
+              </button>
+              <button onClick={() => router.push('/Quiz')} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
+                <ClipboardCheck className="inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1 mb-0.5" />
+                Teste
+              </button>
+              <button onClick={handlePerfil} className="btn-outline-blue text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
+                <User className="inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1 mb-0.5" />
+                Perfil
+              </button>
+              <button onClick={handleLogout} className="btn-outline-red text-xs sm:text-sm px-3 sm:px-4 py-2 whitespace-nowrap">
+                <LogOut className="inline-block w-3 h-3 sm:w-4 sm:h-4 mr-1 mb-1" />
+                Sair
+              </button>
+            </div>
           </div>
+
+          {isMobileMenuOpen && (
+            <div id="mobile-nav-menu" className="sm:hidden mt-3 flex flex-col gap-2">
+              <button onClick={handleInvest} className="btn-outline-blue text-sm px-4 py-2 w-full text-left">
+                <Calculator className='inline-block w-4 h-4 mr-2' />
+                Simular
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  router.push('/Quiz')
+                }}
+                className="btn-outline-blue text-sm px-4 py-2 w-full text-left"
+              >
+                <ClipboardCheck className="inline-block w-4 h-4 mr-2 mb-0.5" />
+                Teste
+              </button>
+              <button onClick={handlePerfil} className="btn-outline-blue text-sm px-4 py-2 w-full text-left">
+                <User className="inline-block w-4 h-4 mr-2 mb-0.5" />
+                Perfil
+              </button>
+              <button onClick={handleLogout} className="btn-outline-red text-sm px-4 py-2 w-full text-left">
+                <LogOut className="inline-block w-4 h-4 mr-2 mb-0.5" />
+                Sair
+              </button>
+            </div>
+          )}
         </div>
+
       </div>
 
       {/* Messages */}

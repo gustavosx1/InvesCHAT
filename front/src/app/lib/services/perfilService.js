@@ -2,39 +2,28 @@
  * Serviço para buscar dados de perfil do investidor no Supabase
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from '../../../../lib/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-//Tive que quebrar o principio do DRY para evitar um erro de importação circular entre os arquivos de rota e serviço
-//não fui um programador pragmatico ;(
 export const getPerfilInvestidor = async ({ id }) => {
- try {
-    const { data, error } = await supabase
-      .from("perfil_teste")
-      .select("*")
-      .eq("id", id)
-      .single();
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('perfil')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
 
     if (error) {
-      console.error(error);
-      return Response.json(
-        { error: "Erro ao buscar perfil" },
-        { status: 500 }
-      );
+      console.error('Erro ao buscar perfil:', error)
+      return { error: 'Erro ao buscar perfil', success: false }
     }
-    console.log("Perfil encontrado:", data);
-    console.log("Perfil encontrado:", data.perfil);
-    return { perfil: data.perfil, success: true };
 
+    if (!data) {
+      return { error: 'Perfil não encontrado', success: false }
+    }
+
+    return { perfil: data.perfil, success: true }
   } catch (error) {
-    console.error("Erro na rota:", error);
-    return Response.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro na rota:', error)
+    return { error: 'Erro interno do servidor', success: false }
   }
-};
+}

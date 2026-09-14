@@ -176,6 +176,7 @@ export default function PerfilForm() {
     setIsSubmitting(true)
 
     const perfil = determinarPerfil()
+    const totalPontos = Object.values(form).reduce((sum, points) => sum + (points || 0), 0)
 
     try {
       const response = await fetch('/api/perfil', {
@@ -183,7 +184,13 @@ export default function PerfilForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id: user.id, perfil: perfil }),
+        body: JSON.stringify({
+          id: user.id,
+          perfil: perfil,
+          score: totalPontos,
+          quiz_responses: form,
+          quiz_completed_at: new Date().toISOString(),
+        }),
       })
 
       const data = await response.json()

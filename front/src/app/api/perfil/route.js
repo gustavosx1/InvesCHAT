@@ -1,61 +1,81 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabaseAdmin } from '../../../../lib/supabase'
 
 export async function GET(req) {
   try {
-    const { id } = await req.json();
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
 
-    const { data, error } = await supabase
-      .from("perfil_teste")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) {
-      console.error(error);
+    if (!id) {
       return Response.json(
-        { error: "Erro ao buscar perfil" },
-        { status: 500 }
-      );
+        { error: 'Parâmetro id é obrigatório' },
+        { status: 400 }
+      )
     }
 
-    return Response.json({ data, success: true });
+    const { data, error } = await supabaseAdmin
+      .from('perfil')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Erro ao buscar perfil:', error)
+      return Response.json(
+        { error: 'Erro ao buscar perfil' },
+        { status: 500 }
+      )
+    }
+
+    if (!data) {
+      return Response.json(
+        { error: 'Perfil não encontrado', success: false },
+        { status: 404 }
+      )
+    }
+
+    return Response.json({ data, success: true })
   } catch (error) {
-    console.error("Erro na rota:", error);
+    console.error('Erro na rota:', error)
     return Response.json(
-      { error: "Erro interno do servidor" },
+      { error: 'Erro interno do servidor' },
       { status: 500 }
-    );
+    )
   }
 }
 
 export async function POST(req) {
   try {
-    const { id, perfil } = await req.json();
+    const { id, perfil, score, quiz_responses, quiz_completed_at } = await req.json()
 
-    const { data, error } = await supabase
-      .from("perfil_teste")
-      .upsert({ id: id, perfil: perfil }, { onConflict: "id" });
+    const { data, error } = await supabaseAdmin
+      .from('perfil')
+      .upsert(
+        {
+          id,
+          perfil,
+          score,
+          quiz_responses: quiz_responses ?? {},
+          quiz_completed_at,
+        },
+        { onConflict: 'id' }
+      )
+      .select()
 
     if (error) {
-      console.error(error);
+      console.error('Erro ao salvar perfil:', error)
       return Response.json(
-        { error: "Erro ao salvar perfil" },
+        { error: 'Erro ao salvar perfil' },
         { status: 500 }
-      );
+      )
     }
 
-    return Response.json({ data, success: true });
+    return Response.json({ data: data?.[0] ?? data, success: true })
   } catch (error) {
-    console.error("Erro na rota:", error);
+    console.error('Erro na rota:', error)
     return Response.json(
-      { error: "Erro interno do servidor" },
+      { error: 'Erro interno do servidor' },
       { status: 500 }
-    );
+    )
   }
 }
     

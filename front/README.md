@@ -22,7 +22,7 @@ Um chatbot inteligente de educação financeira que combina inteligência artifi
 ### 3. **Perfil de Investidor** 👤
 - Questionário com 10 questões determinando perfil de risco
 - Categorias: Conservador, Moderado, Agressivo, Muito Agressivo
-- Persistência de dados com Supabase
+- Persistência de dados com Supabase na tabela `perfil`
 - Pontuação baseada em resposta (A=1, B=2, C=3, D=4 pontos)
 
 ### 4. **Integração com Dados Reais em Tempo Real** 🔄
@@ -39,6 +39,38 @@ Um chatbot inteligente de educação financeira que combina inteligência artifi
 - Padding e spacing ajustados automaticamente
 
 ---
+
+### 6. **Quizzes**
+
+Status atual: o aplicativo já inclui um quiz de 30 perguntas para avaliação de letramento financeiro. O diagnóstico cobre orçamento, dívida, inflação, juros, reserva de emergência, risco x retorno, investimentos, planejamento e patrimônio.
+
+A submissão salva o resultado na tabela `quiz_resultados`, com a `nota` final e o `quiz_completed_at`, além de registrar as respostas em JSON para análise posterior.
+
+
+## 🗄️ **Banco de Dados e Migrações**
+
+As migrations ficam em `supabase/migrations/` e devem ser aplicadas antes do deploy público.
+
+### `perfil`
+- `id uuid` - chave primária e FK para `auth.users(id)`
+- `perfil text` - valor final do perfil: `conservador`, `moderado`, `agressivo` ou `muito_agressivo`
+- `score smallint` - pontuação total do formulário, entre `10` e `40`
+- `quiz_responses jsonb` - respostas detalhadas do questionário
+- `quiz_completed_at timestamptz` - data e hora de conclusão do perfil
+- `created_at timestamptz` - data de criação
+- `updated_at timestamptz` - data de atualização
+
+### `quiz_resultados`
+- `id uuid` - chave primária gerada automaticamente
+- `user_id uuid` - FK para `auth.users(id)`
+- `nota smallint` - nota do quiz, com validação entre `0` e `30`
+- `quiz_completed_at timestamptz` - data e hora do quiz
+- `respostas jsonb` - respostas detalhadas do quiz
+- `quiz_tipo text` - tipo do quiz, padrão `conhecimento_financeiro`
+- `created_at timestamptz` - data de criação
+- `updated_at timestamptz` - data de atualização
+
+As duas tabelas usam RLS e liberam acesso apenas ao usuário autenticado dono dos registros.
 
 ## 🚀 **Como Começar**
 
@@ -132,21 +164,24 @@ front/
 │   │   └── api/
 │   │
 │   ├── lib/
-│   │   ├── services/
-│   │   │   ├── geminiService.js           # Interface com Google Gemini
-│   │   │   ├── investmentService.js       # Dados de investimentos (BrAPI)
-│   │   │   ├── dataService.js             # Dados econômicos (Banco Central)
-│   │   │   └── perfilService.js           # Gerenciar perfil Supabase
-│   │   └── supabase.js                    # Cliente Supabase
+│   │   └── services/
+│   │       ├── geminiService.js           # Interface com Google Gemini
+│   │       ├── investmentService.js       # Dados de investimentos (BrAPI)
+│   │       ├── dataService.js             # Dados econômicos (Banco Central)
+│   │       └── perfilService.js           # Gerenciar perfil Supabase
 │   │
 │   └── components/
 │       └── AuthProvider.js                # Context de autenticação
 │
 ├── public/                                # Assets estáticos
+├── lib/
+│   └── supabase.js                        # Cliente Supabase compartilhado
+├── supabase/
+│   └── migrations/                        # Migrations SQL do Supabase
 ├── package.json                           # Dependências
 ├── next.config.mjs                        # Configuração Next.js
-├── tailwind.config.js                     # Tailwind CSS config
 ├── postcss.config.mjs                     # PostCSS config
+├── verify-migration.sh                    # Script de verificação de migrações
 └── .env.example                           # Template de variáveis
 ```
 
@@ -252,18 +287,21 @@ git push origin main
 
 ## 📝 **Mudanças Recentes**
 
-### ✅ Versão 1.5 (Atual)
+### ✅ Versão 1.6 (Atual)
 - [x] Corrigidos endpoints BrAPI (stock v1, crypto/currency v2)
 - [x] Adicionado carrossel de sugestões de perguntas no Chat
 - [x] Headers e footers sticky (fixos ao rolar)
 - [x] Design totalmente responsivo para mobile/tablet/desktop
 - [x] Botões e texto com tamanhos adaptativos
 - [x] Deployment Vercel monorepo funcionando
+- [x] Tabela `perfil` padronizada no código e nas migrations
+- [x] Quiz de 30 perguntas de letramento financeiro implementado
+- [x] Persistência de resultado do quiz em `quiz_resultados`
 
-### 📚 Documentação Adicional
-- [BRAPI_FIXES.md](./BRAPI_FIXES.md) - Detalhes das correções de API
-- [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md) - Guia de deployment
-- [API_MIGRATION.md](./API_MIGRATION.md) - Histórico de migrações
+### 📚 Migrations e Verificação
+- `supabase/migrations/202609140001_create_perfil.sql`
+- `supabase/migrations/202609140002_create_quiz_resultados.sql`
+- `verify-migration.sh` - script de conferência do ambiente e das migrações
 
 ---
 
@@ -292,6 +330,6 @@ Para dúvidas, problemas ou sugestões:
 
 ---
 
-**Última atualização:** Janeiro 2025  
-**Status:** ✅ Pronto para Produção  
-**Versão:** 1.5
+**Última atualização:** Setembro 2026  
+**Status:** ✅ Base pronta para publicação com quiz de 30 perguntas implementado  
+**Versão:** 1.6
