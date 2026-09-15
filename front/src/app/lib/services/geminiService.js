@@ -70,6 +70,13 @@ DIRETRIZES:
 - Mantenha um tom educativo e acessível
 - Use exemplos práticos quando possível
 
+REGRAS DE PERSONALIZACAO:
+- Separe sempre duas dimensoes: PERFIL DE RISCO e NIVEL DE CONHECIMENTO.
+- PERFIL DE RISCO vem do perfil salvo do usuario (conservador/moderado/arrojado/muito_agressivo).
+- NIVEL DE CONHECIMENTO vem do score do quiz (iniciante/intermediario/experiente).
+- NUNCA deduza perfil de risco a partir do score do quiz.
+- Se faltar perfil salvo, diga explicitamente que nao e possivel classificar risco com precisao e convide o usuario a preencher o Perfil.
+
 REGRA OBRIGATORIA SOBRE QUIZ:
 - NUNCA aplique quiz, perguntas de avaliação ou testes dentro do chat.
 - Se o usuário pedir para fazer quiz/perfil/teste, responda somente orientando a usar o botão "Teste" no topo do aplicativo.
@@ -265,9 +272,50 @@ const getKnowledgeLevel = (score) => {
   return "experiente";
 };
 
+const getRiskProfileLabel = (perfil) => {
+  const value = String(perfil || "").toLowerCase();
+  const labels = {
+    conservador: "conservador",
+    moderado: "moderado",
+    arrojado: "arrojado",
+    agressivo: "agressivo",
+    muito_agressivo: "muito agressivo",
+  };
+
+  return labels[value] ?? null;
+};
+
+const getUserRiskProfileContext = async (userId) => {
+  if (!userId || !supabaseAdmin) {
+    return "Perfil de risco do usuario: desconhecido. Nao inferir risco com base em conhecimento.";
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("perfil")
+      .select("perfil")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return "Perfil de risco do usuario: nao cadastrado. Nao assumir perfil com base no quiz; orientar preencher o Perfil no app para recomendacoes por risco.";
+    }
+
+    const riskProfile = getRiskProfileLabel(data.perfil);
+    if (!riskProfile) {
+      return "Perfil de risco do usuario: invalido ou indisponivel. Nao inferir risco por score.";
+    }
+
+    return `Perfil de risco oficial do usuario: ${riskProfile}. Use este perfil para falar de risco/alocacao.`;
+  } catch (error) {
+    console.error("[Gemini] Erro ao buscar perfil de risco:", error);
+    return "Perfil de risco do usuario: indisponivel no momento. Nao inferir risco com base em conhecimento.";
+  }
+};
+
 const getUserKnowledgeContext = async (userId) => {
   if (!userId || !supabaseAdmin) {
-    return "Nível de conhecimento do usuário: desconhecido. Use linguagem simples e didática.";
+    return "Nivel de conhecimento do usuario: desconhecido. Use linguagem simples e didatica.";
   }
 
   try {
@@ -280,15 +328,24 @@ const getUserKnowledgeContext = async (userId) => {
       .maybeSingle();
 
     if (error || !data) {
-      return "Usuário ainda não possui resultado de quiz. Comece com explicações de nível iniciante, curtas e progressivas.";
+      return "Usuario ainda nao possui resultado de quiz. Comece com explicacoes de nivel iniciante, curtas e progressivas.";
     }
 
     const level = getKnowledgeLevel(data.nota);
-    return `Último score do usuário no quiz: ${data.nota}/30 (${level}). Adapte a linguagem para esse nível: iniciante = básico e sem jargão; intermediario = pode introduzir termos com exemplos; experiente = pode ser mais técnico e objetivo.`;
+    return `Ultimo score do usuario no quiz: ${data.nota}/30 (${level}). Adapte somente a linguagem para esse nivel: iniciante = basico e sem jargao; intermediario = pode introduzir termos com exemplos; experiente = pode ser mais tecnico e objetivo.`;
   } catch (error) {
     console.error("[Gemini] Erro ao buscar score do quiz:", error);
-    return "Nível de conhecimento do usuário: indisponível no momento. Priorize clareza e linguagem simples.";
+    return "Nivel de conhecimento do usuario: indisponivel no momento. Priorize clareza e linguagem simples.";
   }
+};
+
+const getUserPersonalizationContext = async (userId) => {
+  const [riskProfileContext, knowledgeContext] = await Promise.all([
+    getUserRiskProfileContext(userId),
+    getUserKnowledgeContext(userId),
+  ]);
+
+  return `${riskProfileContext} ${knowledgeContext}`;
 };
 
 const toGeminiRole = (role) => {
@@ -352,8 +409,8 @@ export const chatWithGemini = async (pergunta, sessionId, userId, previousMessag
     // Preparar pergunta com contexto de usuário
     let perguntaComContexto = pergunta;
     if (userId) {
-      const knowledgeContext = await getUserKnowledgeContext(userId);
-      perguntaComContexto = `Usuário ID: ${userId}. ${knowledgeContext}. Pergunta: ${pergunta}`;
+      const personalizationContext = await getUserPersonalizationContext(userId);
+      perguntaComContexto = `Usuario ID: ${userId}. ${personalizationContext}. Pergunta: ${pergunta}`;
     }
 
     let conversationContents = buildConversationContents({
