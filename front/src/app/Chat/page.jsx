@@ -16,6 +16,7 @@ export default function Chat() {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [recommendationPopup, setRecommendationPopup] = useState(null)
   const messagesEndRef = useRef(null)
 
   const scrollToBottom = () => {
@@ -89,6 +90,58 @@ export default function Chat() {
       .then(res => res.json())
       .then(data => setSessionId(data.sessionId))
   }, [user, sessionId, setSessionId])
+
+  useEffect(() => {
+    if (loading || !user) return
+
+    let canceled = false
+
+    const fetchUserRecommendations = async () => {
+      try {
+        const [perfilResponse, quizResponse] = await Promise.all([
+          fetch(`/api/perfil/${user.id}`),
+          fetch(`/api/quiz?user_id=${user.id}`),
+        ])
+
+        const perfilJson = await perfilResponse.json().catch(() => null)
+        const quizJson = await quizResponse.json().catch(() => null)
+
+        const needsProfile = !perfilResponse.ok || !perfilJson?.success || !perfilJson?.data
+
+        const latestQuiz = quizResponse.ok && quizJson?.success && quizJson?.data?.length
+          ? quizJson.data[0]
+          : null
+
+        const quizNeverDone = !latestQuiz
+        let quizOlderThanSevenDays = false
+
+        if (latestQuiz?.quiz_completed_at) {
+          const lastQuizDate = new Date(latestQuiz.quiz_completed_at)
+          const ageInDays = (Date.now() - lastQuizDate.getTime()) / (1000 * 60 * 60 * 24)
+          quizOlderThanSevenDays = ageInDays > 7
+        }
+
+        const needsQuiz = quizNeverDone || quizOlderThanSevenDays
+
+        if (!canceled && (needsProfile || needsQuiz)) {
+          setRecommendationPopup({
+            needsProfile,
+            needsQuiz,
+            quizNeverDone,
+            quizOlderThanSevenDays,
+          })
+        }
+      } catch (error) {
+        console.error('Erro ao carregar recomendacoes de perfil/quiz:', error)
+      }
+    }
+
+    fetchUserRecommendations()
+
+    return () => {
+      canceled = true
+    }
+  }, [loading, user])
 
   const sendMessage = async () => {
     if (!user || !sessionId) return
@@ -282,6 +335,65 @@ export default function Chat() {
           </div>
         </div>
       </div>
+
+      {recommendationPopup && (
+        <div className="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white border border-primary-blue/20 shadow-2xl p-6">
+            <p className="text-sm uppercase tracking-[0.18em] text-primary-blue font-semibold">Recomendação personalizada</p>
+            <h2 className="text-2xl font-bold text-gray-900 mt-2">Deixe seu assistente ainda mais preciso</h2>
+
+            <div className="mt-4 space-y-3 text-gray-700">
+              {recommendationPopup.needsProfile && (
+                <p>Complete seu perfil de investidor para receber respostas mais alinhadas ao seu momento.</p>
+              )}
+
+              {recommendationPopup.needsQuiz && recommendationPopup.quizNeverDone && (
+                <p>Você ainda não fez o quiz de conhecimento financeiro. Faça para personalizar o nível das explicações da IA.</p>
+              )}
+
+              {recommendationPopup.needsQuiz && recommendationPopup.quizOlderThanSevenDays && (
+                <p>Seu último quiz foi há mais de 7 dias. Refazer ajuda a manter as recomendações atualizadas.</p>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              {recommendationPopup.needsProfile && (
+                <button
+                  type="button"
+                  className="btn-outline-blue text-sm px-4 py-2"
+                  onClick={() => {
+                    setRecommendationPopup(null)
+                    router.push('/PerfilForm')
+                  }}
+                >
+                  Fazer perfil
+                </button>
+              )}
+
+              {recommendationPopup.needsQuiz && (
+                <button
+                  type="button"
+                  className="btn-primary text-sm px-4 py-2"
+                  onClick={() => {
+                    setRecommendationPopup(null)
+                    router.push('/Quiz')
+                  }}
+                >
+                  Fazer quiz
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="btn-outline-blue text-sm px-4 py-2"
+                onClick={() => setRecommendationPopup(null)}
+              >
+                Agora não
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../../components/AuthProvider'
 
@@ -671,30 +671,71 @@ const QUESTIONS = [...ALL_QUESTIONS]
   .sort(() => Math.random() - 0.5)
   .slice(0, 30)
 
-const RESULT_LEVELS = [
-  { max: 8, label: 'Baixo letramento financeiro', description: 'Há conceitos básicos importantes para fortalecer.' },
-  { max: 15, label: 'Letramento inicial', description: 'Você conhece o básico, mas ainda pode evoluir muito.' },
-  { max: 22, label: 'Letramento intermediário', description: 'Você já toma decisões com mais consciência financeira.' },
-  { max: 27, label: 'Bom letramento financeiro', description: 'Você está acima da média em educação financeira.' },
-  { max: 30, label: 'Excelente letramento financeiro', description: 'Você demonstra um nível muito forte de autonomia financeira.' },
-]
+const getKnowledgeLevel = (score) => {
+  if (score <= 10) return 'Iniciante'
+  if (score <= 20) return 'Intermediário'
+  return 'Experiente'
+}
+
+const formatDate = (isoDate) => {
+  if (!isoDate) return '-'
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(isoDate))
+}
 
 export default function QuizPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [answers, setAnswers] = useState({})
   const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [result, setResult] = useState(null)
   const [error, setError] = useState('')
+  const [lastResult, setLastResult] = useState(null)
+  const [loadingLastResult, setLoadingLastResult] = useState(true)
+  const [successPopup, setSuccessPopup] = useState(null)
 
   const answeredCount = Object.keys(answers).length
   const allAnswered = answeredCount === QUESTIONS.length
 
-  const resultLevel = useMemo(() => {
-    const score = result ?? 0
-    return RESULT_LEVELS.find((level) => score <= level.max) ?? RESULT_LEVELS[RESULT_LEVELS.length - 1]
-  }, [result])
+  useEffect(() => {
+    const loadLastResult = async () => {
+      if (!user) {
+        setLoadingLastResult(false)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/quiz?user_id=${user.id}`)
+        const data = await response.json()
+
+        if (response.ok && data.success && data.data && data.data.length > 0) {
+          setLastResult(data.data[0])
+        }
+      } catch (err) {
+        console.error('Erro ao carregar ultimo resultado do quiz:', err)
+      } finally {
+        setLoadingLastResult(false)
+      }
+    }
+
+    if (!loading) {
+      loadLastResult()
+    }
+  }, [user, loading])
+
+  useEffect(() => {
+    if (!successPopup) return undefined
+
+    const timeoutId = setTimeout(() => {
+      router.push('/Chat')
+    }, 3500)
+
+    return () => clearTimeout(timeoutId)
+  }, [successPopup, router])
 
   if (!loading && !user) {
     router.push('/login')
@@ -739,11 +780,13 @@ export default function QuizPage() {
         throw new Error(data.error || 'Erro ao salvar o quiz.')
       }
 
+      const completedAt = new Date().toISOString()
+      setLastResult({ nota: score, quiz_completed_at: completedAt })
       setAnswers({})
-      setSubmitted(false)
-      setResult(null)
-      alert(`Quiz enviado com sucesso! Sua nota foi ${score}/30.`)
-      router.push('/Chat')
+      setSuccessPopup({
+        score,
+        level: getKnowledgeLevel(score),
+      })
     } catch (err) {
       console.error('Erro ao enviar quiz:', err)
       setError(err.message || 'Não foi possível enviar o resultado do quiz.')
@@ -782,14 +825,20 @@ export default function QuizPage() {
           </p>
         </div>
 
-        {submitted && result !== null && (
-          <div className="rounded-2xl border border-primary-green/30 bg-primary-green/5 p-5 mb-6">
-            <p className="text-sm uppercase tracking-[0.18em] text-primary-green font-semibold">Resultado</p>
-            <h2 className="text-2xl font-bold text-gray-900 mt-2">{result}/30 pontos</h2>
-            <p className="text-lg font-medium text-gray-800 mt-1">{resultLevel.label}</p>
-            <p className="text-gray-600 mt-1">{resultLevel.description}</p>
-          </div>
-        )}
+        <div className="rounded-2xl border border-primary-blue/20 bg-primary-blue/5 p-5 mb-6">
+          <p className="text-sm uppercase tracking-[0.18em] text-primary-blue font-semibold">Seu último resultado</p>
+          {loadingLastResult ? (
+            <p className="text-gray-600 mt-2">Carregando resultado...</p>
+          ) : lastResult ? (
+            <div className="mt-2">
+              <h2 className="text-2xl font-bold text-gray-900">{lastResult.nota}/30 pontos</h2>
+              <p className="text-lg font-medium text-gray-800 mt-1">Nível: {getKnowledgeLevel(lastResult.nota)}</p>
+              <p className="text-gray-600 mt-1">Realizado em: {formatDate(lastResult.quiz_completed_at)}</p>
+            </div>
+          ) : (
+            <p className="text-gray-600 mt-2">Você ainda não possui resultado anterior salvo.</p>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {QUESTIONS.map((item, index) => (
@@ -847,6 +896,27 @@ export default function QuizPage() {
           </div>
         </form>
       </div>
+
+      {successPopup && (
+        <div className="fixed inset-0 z-[70] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="w-full max-w-md rounded-3xl bg-white border border-primary-green/20 shadow-2xl p-6 text-center">
+            <div className="mx-auto mb-4 h-14 w-14 rounded-full bg-primary-green/15 flex items-center justify-center">
+              <span className="text-2xl">✅</span>
+            </div>
+            <p className="text-sm uppercase tracking-[0.18em] text-primary-green font-semibold">Teste concluído</p>
+            <h2 className="text-3xl font-bold text-gray-900 mt-2">{successPopup.score}/30</h2>
+            <p className="text-lg text-gray-800 mt-1">Nível: {successPopup.level}</p>
+            <p className="text-gray-600 mt-3">Resultado salvo com sucesso. Você será redirecionado ao chat.</p>
+            <button
+              type="button"
+              className="btn-primary text-sm px-6 py-2 mt-5"
+              onClick={() => router.push('/Chat')}
+            >
+              Ir para o chat agora
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

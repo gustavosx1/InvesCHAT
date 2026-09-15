@@ -4,6 +4,7 @@
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { supabaseAdmin } from "../../../../lib/supabase";
 import * as dataService from "./dataService";
 import * as investmentService from "./investmentService";
 import * as perfilService from "./perfilService";
@@ -19,7 +20,7 @@ Sempre avise que suas respostas são educativas e não constituem recomendação
 Evite jargões técnicos e seja didático, explicando conceitos de forma simples.
 Use os dados mais recentes para fornecer informações precisas sobre o mercado financeiro brasileiro.
 Se o usuário pedir recomendações, explique os conceitos e riscos envolvidos, mas não dê recomendações específicas.
-Evite se estender por mais de 300 caracteres, exceto quando for necessário para as notícias da semana
+Evite se estender por mais de 300 caracteres, exceto quando for necessário para as notícias da semana.
 
 
 IMPORTANTE - FORMATAÇÃO DE RESPOSTAS COM MARKDOWN:
@@ -244,6 +245,39 @@ const tools = [
  */
 const sessions = new Map();
 
+const getKnowledgeLevel = (score) => {
+  if (typeof score !== "number") return "iniciante";
+  if (score <= 10) return "iniciante";
+  if (score <= 20) return "intermediario";
+  return "experiente";
+};
+
+const getUserKnowledgeContext = async (userId) => {
+  if (!userId || !supabaseAdmin) {
+    return "Nível de conhecimento do usuário: desconhecido. Use linguagem simples e didática.";
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("quiz_resultados")
+      .select("nota, quiz_completed_at")
+      .eq("user_id", userId)
+      .order("quiz_completed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      return "Usuário ainda não possui resultado de quiz. Comece com explicações de nível iniciante, curtas e progressivas.";
+    }
+
+    const level = getKnowledgeLevel(data.nota);
+    return `Último score do usuário no quiz: ${data.nota}/30 (${level}). Adapte a linguagem para esse nível: iniciante = básico e sem jargão; intermediario = pode introduzir termos com exemplos; experiente = pode ser mais técnico e objetivo.`;
+  } catch (error) {
+    console.error("[Gemini] Erro ao buscar score do quiz:", error);
+    return "Nível de conhecimento do usuário: indisponível no momento. Priorize clareza e linguagem simples.";
+  }
+};
+
 export const createSession = (userId = null) => {
   const sessionId = crypto.randomUUID();
   sessions.set(sessionId, {
@@ -295,7 +329,8 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
     // Preparar pergunta com contexto de usuário
     let perguntaComContexto = pergunta;
     if (userId) {
-      perguntaComContexto = `Usuário ID: ${userId}. ${pergunta}`;
+      const knowledgeContext = await getUserKnowledgeContext(userId);
+      perguntaComContexto = `Usuário ID: ${userId}. ${knowledgeContext}. Pergunta: ${pergunta}`;
     }
 
     // Adicionar pergunta ao histórico
