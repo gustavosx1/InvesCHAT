@@ -69,6 +69,11 @@ DIRETRIZES:
 - Evite recomendações financeiras específicas (você não é consultor)
 - Mantenha um tom educativo e acessível
 - Use exemplos práticos quando possível
+
+REGRA OBRIGATORIA SOBRE QUIZ:
+- NUNCA aplique quiz, perguntas de avaliação ou testes dentro do chat.
+- Se o usuário pedir para fazer quiz/perfil/teste, responda somente orientando a usar o botão "Teste" no topo do aplicativo.
+- Você pode explicar para que serve o quiz, mas não deve conduzir perguntas do quiz no chat.
 ## ALOCAÇÃO RECOMENDADA POR PERFIL (use ao apresentar o resultado)
 
 **Conservador**
@@ -245,6 +250,20 @@ const tools = [
  */
 const sessions = new Map();
 
+const isQuizExecutionIntent = (text = "") => {
+  const normalized = String(text).toLowerCase();
+  return (
+    normalized.includes("quiz") ||
+    normalized.includes("teste de perfil") ||
+    normalized.includes("perfil de investidor") ||
+    normalized.includes("descobrir meu perfil") ||
+    normalized.includes("fazer teste")
+  );
+};
+
+const QUIZ_REDIRECT_MESSAGE =
+  'Eu nao consigo aplicar o quiz aqui no chat. Para fazer o teste, clique no botao "Teste" na parte superior do app. Assim seu resultado fica salvo e eu adapto minhas explicacoes ao seu nivel.';
+
 const getKnowledgeLevel = (score) => {
   if (typeof score !== "number") return "iniciante";
   if (score <= 10) return "iniciante";
@@ -315,6 +334,15 @@ const processFunctionCall = async (toolName, toolInput) => {
  */
 export const chatWithGemini = async (pergunta, sessionId, userId) => {
   try {
+    if (isQuizExecutionIntent(pergunta)) {
+      return {
+        sessionId,
+        pergunta,
+        resposta: QUIZ_REDIRECT_MESSAGE,
+        timestamp: new Date().toISOString(),
+      };
+    }
+
     // Obter ou criar sessão
     let session = sessions.get(sessionId);
     if (!session) {
