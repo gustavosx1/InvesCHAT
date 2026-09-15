@@ -77,19 +77,51 @@ export default function Chat() {
 
   useEffect(() => {
     if (!user) return
-    
-    // Se já existe sessionId, não criar novo
+
+    // Se já existe sessionId em memória, mantém estado atual
     if (sessionId) return
 
-    // Criar nova sessão
-    fetch('/api/chat/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: user.id })
-    })
-      .then(res => res.json())
-      .then(data => setSessionId(data.sessionId))
-  }, [user, sessionId, setSessionId])
+    let canceled = false
+
+    const restoreOrCreateSession = async () => {
+      try {
+        const restoreResponse = await fetch(`/api/chat/session?user_id=${user.id}`)
+        const restoreData = await restoreResponse.json()
+
+        if (!canceled && restoreResponse.ok && restoreData.success && restoreData.sessionId) {
+          const restoredMessages = (restoreData.messages ?? []).map((message) => ({
+            role: message.role === 'assistant' ? 'bot' : 'user',
+            text: message.content,
+          }))
+
+          setSessionId(restoreData.sessionId)
+          setMessages(restoredMessages)
+          return
+        }
+
+        const createResponse = await fetch('/api/chat/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id })
+        })
+
+        const createData = await createResponse.json()
+
+        if (!canceled && createResponse.ok && createData.success && createData.sessionId) {
+          setSessionId(createData.sessionId)
+          setMessages([])
+        }
+      } catch (error) {
+        console.error('Erro ao restaurar sessão do chat:', error)
+      }
+    }
+
+    restoreOrCreateSession()
+
+    return () => {
+      canceled = true
+    }
+  }, [user, sessionId, setSessionId, setMessages])
 
   useEffect(() => {
     if (loading || !user) return
@@ -148,7 +180,7 @@ export default function Chat() {
     if (!input.trim()) return
 
     const userMessage = { role: 'user', text: input }
-    setMessages([...messages, userMessage])
+    setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
 

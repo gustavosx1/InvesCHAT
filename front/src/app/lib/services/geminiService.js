@@ -244,12 +244,6 @@ const tools = [
   },
 ];
 
-/**
- * Armazena sessões em memória
- * Em produção, usar um banco de dados
- */
-const sessions = new Map();
-
 const isQuizExecutionIntent = (text = "") => {
   const normalized = String(text).toLowerCase();
   return (
@@ -297,19 +291,31 @@ const getUserKnowledgeContext = async (userId) => {
   }
 };
 
-export const createSession = (userId = null) => {
-  const sessionId = crypto.randomUUID();
-  sessions.set(sessionId, {
-    historico: [],
-    user_id: userId,
-    criada_em: new Date().toISOString(),
-  });
+const toGeminiRole = (role) => {
+  if (role === "assistant" || role === "model" || role === "bot") {
+    return "model";
+  }
 
-  return {
-    sessionId,
-    criada_em: new Date().toISOString(),
-    user_id: userId,
-  };
+  return "user";
+};
+
+const buildConversationContents = ({ previousMessages, promptText }) => {
+  const contextMessages = (previousMessages ?? []).slice(-10);
+
+  const contextContents = contextMessages
+    .filter((message) => typeof message?.content === "string" && message.content.trim())
+    .map((message) => ({
+      role: toGeminiRole(message.role),
+      parts: [{ text: message.content.trim() }],
+    }));
+
+  return [
+    ...contextContents,
+    {
+      role: "user",
+      parts: [{ text: promptText }],
+    },
+  ];
 };
 
 /**
@@ -332,7 +338,7 @@ const processFunctionCall = async (toolName, toolInput) => {
 /**
  * Chama o Gemini e processa responses com function calling
  */
-export const chatWithGemini = async (pergunta, sessionId, userId) => {
+export const chatWithGemini = async (pergunta, sessionId, userId, previousMessages = []) => {
   try {
     if (isQuizExecutionIntent(pergunta)) {
       return {
@@ -343,17 +349,6 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
       };
     }
 
-    // Obter ou criar sessão
-    let session = sessions.get(sessionId);
-    if (!session) {
-      session = {
-        historico: [],
-        user_id: userId,
-        criada_em: new Date().toISOString(),
-      };
-      sessions.set(sessionId, session);
-    }
-
     // Preparar pergunta com contexto de usuário
     let perguntaComContexto = pergunta;
     if (userId) {
@@ -361,10 +356,9 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
       perguntaComContexto = `Usuário ID: ${userId}. ${knowledgeContext}. Pergunta: ${pergunta}`;
     }
 
-    // Adicionar pergunta ao histórico
-    session.historico.push({
-      role: "user",
-      parts: [{ text: perguntaComContexto }],
+    let conversationContents = buildConversationContents({
+      previousMessages,
+      promptText: perguntaComContexto,
     });
 
     // Inicializar o modelo com as ferramentas
@@ -376,7 +370,7 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
 
     // Primeira chamada ao Gemini
     let response = await model.generateContent({
-      contents: session.historico,
+      contents: conversationContents,
     });
 
     // Loop para processar function calls até o modelo retornar texto final
@@ -395,31 +389,25 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
       console.log(`[Gemini] Resultado de ${name}:`, resultado);
 
       // Adiciona a chamada da função ao histórico (papel do modelo)
-      session.historico.push({
+      conversationContents.push({
         role: "model",
         parts: [{ functionCall: { name, args } }],
       });
 
       // Adiciona o resultado da função ao histórico (papel do user/tool)
-      session.historico.push({
+      conversationContents.push({
         role: "user",
         parts: [{ functionResponse: { name, response: resultado } }],
       });
 
       // Nova chamada com o resultado da função incluído no histórico
       response = await model.generateContent({
-        contents: session.historico,
+        contents: conversationContents,
       });
     }
 
     // Extrai o texto final da resposta
     const resposta = response.response.text();
-
-    // Adicionar resposta final ao histórico
-    session.historico.push({
-      role: "model",
-      parts: [{ text: resposta }],
-    });
 
     return {
       sessionId,
@@ -433,17 +421,4 @@ export const chatWithGemini = async (pergunta, sessionId, userId) => {
       erro: `Erro ao processar pergunta: ${error.message}`,
     };
   }
-};
-
-export const getSession = (sessionId) => {
-  const session = sessions.get(sessionId);
-  if (!session) {
-    return null;
-  }
-
-  return {
-    sessionId,
-    criada_em: session.criada_em,
-    historico_length: session.historico.length,
-  };
 };
