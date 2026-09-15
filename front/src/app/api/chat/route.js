@@ -5,6 +5,18 @@
 import { chatWithGemini } from "@/app/lib/services/geminiService";
 import { supabaseAdmin } from '../../../../lib/supabase'
 
+const getLatestSessionByUser = async (userId) => {
+  const { data, error } = await supabaseAdmin
+    .from('chat_sessions')
+    .select('id')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  return { data, error }
+}
+
 export const POST = async (request) => {
   try {
     const { pergunta, session_id, user_id } = await request.json();
@@ -26,20 +38,33 @@ export const POST = async (request) => {
     let finalSessionId = session_id;
 
     if (!finalSessionId) {
-      const { data: createdSession, error: createSessionError } = await supabaseAdmin
-        .from('chat_sessions')
-        .insert({ user_id })
-        .select('id')
-        .single()
+      const { data: existingSession, error: existingSessionError } = await getLatestSessionByUser(user_id)
 
-      if (createSessionError || !createdSession) {
+      if (existingSessionError) {
         return Response.json(
-          { erro: `Erro ao criar sessão: ${createSessionError?.message || 'sessão inválida'}` },
+          { erro: `Erro ao buscar sessão: ${existingSessionError.message}` },
           { status: 500 }
         )
       }
 
-      finalSessionId = createdSession.id
+      if (existingSession?.id) {
+        finalSessionId = existingSession.id
+      } else {
+        const { data: createdSession, error: createSessionError } = await supabaseAdmin
+          .from('chat_sessions')
+          .insert({ user_id })
+          .select('id')
+          .single()
+
+        if (createSessionError || !createdSession) {
+          return Response.json(
+            { erro: `Erro ao criar sessão: ${createSessionError?.message || 'sessão inválida'}` },
+            { status: 500 }
+          )
+        }
+
+        finalSessionId = createdSession.id
+      }
     } else {
       const { error: upsertError } = await supabaseAdmin
         .from('chat_sessions')

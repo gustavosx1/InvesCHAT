@@ -4,21 +4,21 @@
 
 import { supabaseAdmin } from '../../../../../lib/supabase'
 
-const MAX_RESTORED_MESSAGES = 50
-const MAX_CANDIDATE_SESSIONS = 10
+const MAX_RESTORED_MESSAGES = 30
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const toSaoPauloDateKey = (value) => {
-  const date = value instanceof Date ? value : new Date(value)
+const getLatestSessionByUser = async (userId) => {
+  const { data, error } = await supabaseAdmin
+    .from('chat_sessions')
+    .select('id, created_at, updated_at, last_message_at')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(date)
+  return { data, error }
 }
 
 export const GET = async (request) => {
@@ -33,12 +33,7 @@ export const GET = async (request) => {
       )
     }
 
-    const { data: candidateSessions, error: sessionError } = await supabaseAdmin
-      .from('chat_sessions')
-      .select('id, created_at, updated_at, last_message_at')
-      .eq('user_id', userId)
-      .order('updated_at', { ascending: false })
-      .limit(MAX_CANDIDATE_SESSIONS)
+    const { data: lastSession, error: sessionError } = await getLatestSessionByUser(userId)
 
     if (sessionError) {
       return Response.json(
@@ -46,12 +41,6 @@ export const GET = async (request) => {
         { status: 500 }
       )
     }
-
-    const todayKey = toSaoPauloDateKey(new Date())
-    const lastSession = (candidateSessions ?? []).find((session) => {
-      if (!session?.last_message_at) return false
-      return toSaoPauloDateKey(session.last_message_at) === todayKey
-    })
 
     if (!lastSession) {
       return Response.json(
@@ -115,22 +104,43 @@ export const POST = async (request) => {
 
     const { data: session, error } = await supabaseAdmin
       .from('chat_sessions')
-      .insert({ user_id })
       .select('id, created_at, updated_at, last_message_at')
-      .single()
+      .eq('user_id', user_id)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
     if (error) {
       return Response.json(
-        { erro: `Erro ao criar sessão: ${error.message}`, success: false },
+        { erro: `Erro ao buscar sessão: ${error.message}`, success: false },
         { status: 500 }
       )
+    }
+
+    let finalSession = session
+
+    if (!finalSession) {
+      const { data: createdSession, error: createError } = await supabaseAdmin
+        .from('chat_sessions')
+        .insert({ user_id })
+        .select('id, created_at, updated_at, last_message_at')
+        .single()
+
+      if (createError) {
+        return Response.json(
+          { erro: `Erro ao criar sessão: ${createError.message}`, success: false },
+          { status: 500 }
+        )
+      }
+
+      finalSession = createdSession
     }
 
     return Response.json(
       {
         success: true,
-        sessionId: session.id,
-        session,
+        sessionId: finalSession.id,
+        session: finalSession,
       },
       { status: 201 }
     )
