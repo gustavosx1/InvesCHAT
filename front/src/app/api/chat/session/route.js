@@ -5,10 +5,20 @@
 import { supabaseAdmin } from '../../../../../lib/supabase'
 
 const MAX_RESTORED_MESSAGES = 50
+const MAX_CANDIDATE_SESSIONS = 10
 
-const getStartOfCurrentUtcDay = () => {
-  const now = new Date()
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
+const toSaoPauloDateKey = (value) => {
+  const date = value instanceof Date ? value : new Date(value)
+
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
 export const GET = async (request) => {
@@ -23,16 +33,12 @@ export const GET = async (request) => {
       )
     }
 
-    const startOfDayUtc = getStartOfCurrentUtcDay().toISOString()
-
-    const { data: lastSession, error: sessionError } = await supabaseAdmin
+    const { data: candidateSessions, error: sessionError } = await supabaseAdmin
       .from('chat_sessions')
       .select('id, created_at, updated_at, last_message_at')
       .eq('user_id', userId)
-      .gte('last_message_at', startOfDayUtc)
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .limit(MAX_CANDIDATE_SESSIONS)
 
     if (sessionError) {
       return Response.json(
@@ -41,10 +47,21 @@ export const GET = async (request) => {
       )
     }
 
+    const todayKey = toSaoPauloDateKey(new Date())
+    const lastSession = (candidateSessions ?? []).find((session) => {
+      if (!session?.last_message_at) return false
+      return toSaoPauloDateKey(session.last_message_at) === todayKey
+    })
+
     if (!lastSession) {
       return Response.json(
         { success: true, sessionId: null, messages: [] },
-        { status: 200 }
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        }
       )
     }
 
@@ -69,7 +86,12 @@ export const GET = async (request) => {
         session: lastSession,
         messages: messages ?? [],
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        },
+      }
     )
   } catch (error) {
     return Response.json(

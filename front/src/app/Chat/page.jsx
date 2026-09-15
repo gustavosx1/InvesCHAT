@@ -85,7 +85,9 @@ export default function Chat() {
 
     const restoreOrCreateSession = async () => {
       try {
-        const restoreResponse = await fetch(`/api/chat/session?user_id=${user.id}`)
+        const restoreResponse = await fetch(`/api/chat/session?user_id=${user.id}`, {
+          cache: 'no-store',
+        })
         const restoreData = await restoreResponse.json()
 
         if (!canceled && restoreResponse.ok && restoreData.success && restoreData.sessionId) {
